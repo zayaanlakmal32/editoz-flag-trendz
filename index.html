@@ -6,79 +6,85 @@
 <title>Editoz Flag Trends</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
 <style>
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    max-width: 900px;
-    margin: 40px auto;
-    padding: 0 20px;
-    color: #1a1a1a;
-    background: #fafafa;
-  }
-  h1 { font-size: 20px; margin-bottom: 4px; }
-  p.subtitle { color: #666; margin-top: 0; font-size: 14px; }
-  .chart-card {
-    background: #fff;
-    border: 1px solid #e5e5e5;
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 24px;
-  }
-  .chart-card h2 { font-size: 15px; margin: 0 0 12px; }
-  #status { color: #b91c1c; font-size: 14px; }
+:root{--ink:#14161a;--muted:#6b7280;--bg:#f4f5f7;--card:#ffffff;--border:#e8e9ec;--shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);}
+*{box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.topbar{background:#0c0d10;padding:18px 32px;display:flex;align-items:center;gap:12px;}
+.logo-mark{width:34px;height:34px;border-radius:50%;background:linear-gradient(145deg,#2b2d33,#0c0d10);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);}
+.logo-mark svg{width:15px;height:15px;}
+.logo-word{color:#fff;font-weight:700;font-size:16px;letter-spacing:-0.01em;}
+.logo-word span{color:#8b8fa3;font-weight:500;}
+.page{max-width:980px;margin:0 auto;padding:40px 24px 64px;}
+.page-header{margin-bottom:28px;}
+.page-header h1{font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-0.02em;}
+.page-header p{margin:0;color:var(--muted);font-size:14.5px;}
+#status{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;padding:12px 16px;border-radius:10px;font-size:13.5px;margin-bottom:20px;display:none;}
+#status.visible{display:block;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 24px 12px;box-shadow:var(--shadow);}
+.chart-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.chart-card-head h2{font-size:14.5px;font-weight:600;margin:0;display:flex;align-items:center;gap:8px;}
+.badge{font-size:11px;font-weight:600;color:var(--muted);background:#f2f3f5;padding:4px 9px;border-radius:999px;letter-spacing:.01em;}
+.chart-wrap{position:relative;height:260px;}
+footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
+@media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}}
 </style>
 </head>
 <body>
-  <h1>Editoz Flag Trends</h1>
-  <p class="subtitle">Last 3 audit weeks — Execution &amp; Creative flags</p>
-  <div id="status"></div>
-
-  <div class="chart-card">
-    <h2>⚙️ Execution Flags</h2>
-    <canvas id="executionChart" height="120"></canvas>
-  </div>
-
-  <div class="chart-card">
-    <h2>🎨 Creative Flags</h2>
-    <canvas id="creativeChart" height="120"></canvas>
-  </div>
-
+<div class="topbar">
+<div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 5.5L18 12L8 18.5V5.5Z" fill="white"/></svg></div>
+<div class="logo-word">editoz<span>.club</span></div>
+</div>
+<div class="page">
+<div class="page-header">
+<h1>Flag Trends</h1>
+<p>Execution &amp; Creative flags across the last 3 audit weeks</p>
+</div>
+<div id="status"></div>
+<div class="grid">
+<div class="chart-card">
+<div class="chart-card-head"><h2>⚙️ Execution Flags</h2><span class="badge">3-week trend</span></div>
+<div class="chart-wrap"><canvas id="executionChart"></canvas></div>
+</div>
+<div class="chart-card">
+<div class="chart-card-head"><h2>🎨 Creative Flags</h2><span class="badge">3-week trend</span></div>
+<div class="chart-wrap"><canvas id="creativeChart"></canvas></div>
+</div>
+</div>
+<footer>Weekly Audit Records &middot; synced from Notion</footer>
+</div>
 <script>
-async function loadData() {
-  const statusEl = document.getElementById("status");
-  try {
-    const res = await fetch("/api/audit");
-    const data = await res.json();
-
-    if (!res.ok) {
-      statusEl.textContent = `Error loading data: ${data.error || res.status}` +
-        (data.notion_error?.message ? ` — ${data.notion_error.message}` : "");
-      console.error("API error:", data);
-      return;
-    }
-
-    renderChart("executionChart", data.weeks, data.executionFlags, "#2563eb");
-    renderChart("creativeChart", data.weeks, data.creativeFlags, "#db2777");
-  } catch (err) {
-    statusEl.textContent = "Failed to reach /api/audit: " + err.message;
-    console.error(err);
-  }
+function ordinal(n){var s=["th","st","nd","rd"];var v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+function formatWeekRange(isoDate){var start=new Date(isoDate+"T00:00:00");var end=new Date(start);end.setDate(start.getDate()+6);function fmt(d){return d.toLocaleString("en-US",{month:"long"})+" "+ordinal(d.getDate());}return fmt(start)+" - "+fmt(end);}
+function makeGradient(ctx,chartArea,colorTop,colorBottom){var gradient=ctx.createLinearGradient(0,chartArea.top,0,chartArea.bottom);gradient.addColorStop(0,colorTop);gradient.addColorStop(1,colorBottom);return gradient;}
+async function loadData(){
+var statusEl=document.getElementById("status");
+try{
+var res=await fetch("/api/audit");
+var data=await res.json();
+if(!res.ok){
+statusEl.classList.add("visible");
+statusEl.textContent="Error loading data: "+(data.error||res.status)+(data.notion_error&&data.notion_error.message?" - "+data.notion_error.message:"");
+console.error("API error:",data);
+return;
 }
-
-function renderChart(canvasId, labels, values, color) {
-  new Chart(document.getElementById(canvasId), {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{ label: "Flags", data: values, backgroundColor: color, borderRadius: 4 }],
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-    },
-  });
+var labels=data.weeks.map(formatWeekRange);
+renderChart("executionChart",labels,data.executionFlags,"#4f46e5","#7c7ff2");
+renderChart("creativeChart",labels,data.creativeFlags,"#db2777","#f0479f");
+}catch(err){
+statusEl.classList.add("visible");
+statusEl.textContent="Something went wrong rendering the dashboard: "+err.message;
+console.error(err);
 }
-
+}
+function renderChart(canvasId,labels,values,colorTop,colorBottom){
+var ctx=document.getElementById(canvasId).getContext("2d");
+new Chart(ctx,{
+type:"bar",
+data:{labels:labels,datasets:[{label:"Flags",data:values,backgroundColor:function(context){var chart=context.chart;var ctx2=chart.ctx;var chartArea=chart.chartArea;if(!chartArea)return colorTop;return makeGradient(ctx2,chartArea,colorTop,colorBottom);},borderRadius:8,maxBarThickness:72}]},
+options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}}
+});
+}
 loadData();
 </script>
 </body>
