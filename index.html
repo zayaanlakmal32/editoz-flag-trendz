@@ -704,12 +704,18 @@ if(subtitleEl)subtitleEl.textContent=data.weekLabel+" — best-viewed post per p
 // record then has no category/PO and this section looks permanently
 // empty. Surface that directly instead of a generic "no data" message.
 if(warningEl){
-if(apiData&&apiData.projectTrackerLinkedCount===0){
-warningEl.textContent="⚠️ Couldn't read the Project Tracker database (0 pages linked) — in Notion, open Project Tracker → \"...\" menu → Connections, and add the same integration used for Weekly Audit Records. Until then this section stays empty.";
-warningEl.style.display="block";
-}else{
-warningEl.style.display="none";
+var warnText="";
+if(apiData&&apiData.projectTrackerError){
+warnText="⚠️ Notion rejected the Project Tracker lookup: \""+apiData.projectTrackerError+"\" — this is usually a wrong database ID or an integration that still can't see that database.";
+}else if(apiData&&apiData.projectTrackerLinkedCount===0){
+warnText="⚠️ Couldn't read the Project Tracker database (0 pages linked) — in Notion, open Project Tracker → \"...\" menu → Connections, and add the same integration used for Weekly Audit Records. Until then this section stays empty.";
+}else if(apiData&&apiData.recordsWithTrackerRelation===0){
+warnText="⚠️ None of the audit records have their \"📊 Project Tracker\" relation filled in, so there's nothing to look up a category from. This is a Notion data field, not a permissions issue — check that field on the audit records themselves.";
+}else if(apiData&&apiData.recordsWithTrackerRelation>0&&apiData.recordsWithResolvedCategory===0){
+warnText="⚠️ Audit records link to Project Tracker, but none resolved to a category — likely this dashboard hasn't picked up the latest code yet. Confirm api/audit.js in your repo matches the latest version and Vercel finished redeploying (check the deployment timestamp), then hard-refresh this page.";
 }
+if(warnText){warningEl.textContent=warnText;warningEl.style.display="block";}
+else{warningEl.style.display="none";}
 }
 container.innerHTML=data.groups.map(function(g){
 var rowsHtml=g.entries.length?g.entries.map(function(e,i){
