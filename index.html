@@ -116,7 +116,22 @@ so it needs its own darker stops rather than sharing the dark version. */
 .topperf-head{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1;flex-wrap:wrap;}
 .topperf-title{display:flex;align-items:center;gap:8px;font-size:15.5px;font-weight:700;letter-spacing:-0.01em;}
 .topperf-icon{font-size:18px;}
-.topperf-subtitle{margin:6px 0 20px;font-size:12.5px;color:rgba(255,255,255,.55);position:relative;z-index:1;}
+.topperf-subtitle{margin:6px 0 14px;font-size:12.5px;color:rgba(255,255,255,.55);position:relative;z-index:1;}
+.topperf-toolbar{position:relative;z-index:2;margin-bottom:16px;}
+/* This card is deliberately always-dark regardless of page theme, so the
+dropdown needs its own fixed-dark styling instead of the var(--card-alt)
+etc. tokens the same dropdown uses elsewhere — those flip to light colors
+in light mode, which would clash against this card's fixed dark background. */
+.topperf-week-select .custom-select-trigger{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff;box-shadow:none;}
+.topperf-week-select .custom-select-trigger:hover{border-color:#818cf8;}
+.topperf-week-select .custom-select-trigger.open{border-color:#818cf8;box-shadow:0 0 0 3px rgba(99,102,241,.25);}
+.topperf-week-select .custom-select-arrow{border-color:#c7d2fe;}
+.topperf-week-select .custom-select-menu{background:#1f2128;}
+.topperf-week-select .custom-select-menu.open{border-color:rgba(255,255,255,.14);}
+.topperf-week-select .custom-select-option{color:#e5e7eb;}
+.topperf-week-select .custom-select-option:hover{background:rgba(255,255,255,.08);}
+.topperf-week-select .custom-select-option.selected{background:rgba(99,102,241,.3);color:#c7d2fe;}
+.topperf-week-select .custom-select-option .check{color:#a5b4fc;}
 .topperf-groups{display:flex;flex-direction:column;gap:16px;position:relative;z-index:1;}
 .topperf-group{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px 18px;}
 .topperf-group-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
@@ -458,6 +473,15 @@ delay for an entrance rather than everything popping in at once. */
 <button type="button" class="summary-copy-btn" id="topPerfCopyBtn"><span id="topPerfCopyBtnText">📋 Copy for Slack</span></button>
 </div>
 <p class="topperf-subtitle" id="topPerfSubtitle">–</p>
+<div class="topperf-toolbar">
+<div class="custom-select topperf-week-select" id="topPerfWeekDropdown">
+<button type="button" class="custom-select-trigger" id="topPerfWeekTrigger" aria-haspopup="listbox" aria-expanded="false">
+<span id="topPerfWeekTriggerText">Select a week…</span>
+<span class="custom-select-arrow"></span>
+</button>
+<div class="custom-select-menu" id="topPerfWeekMenu" role="listbox"></div>
+</div>
+</div>
 <p class="topperf-warning" id="topPerfWarning" style="display:none;"></p>
 <div class="topperf-groups" id="topPerfGroups"></div>
 </div>
@@ -929,8 +953,52 @@ posts.sort(function(a,b){return b.views-a.views;});
 return posts.slice(0,3);
 }
 
+// null = "current week" default, same convention used for the leaderboard's
+// week selector.
+var selectedTopPerfWeekIndex=null;
+function currentTopPerfWeekIndex(){
+return selectedTopPerfWeekIndex!==null?selectedTopPerfWeekIndex:weekLabels.length-1;
+}
+function populateTopPerfWeekMenu(){
+var menu=document.getElementById("topPerfWeekMenu");
+var triggerText=document.getElementById("topPerfWeekTriggerText");
+if(!menu)return;
+menu.innerHTML="";
+for(var i=weekLabels.length-1;i>=0;i--){
+(function(weekIdx){
+var opt=document.createElement("div");
+opt.className="custom-select-option";
+opt.setAttribute("role","option");
+opt.setAttribute("data-index",String(weekIdx));
+var label=weekIdx===weekLabels.length-1?weekLabels[weekIdx]+" (current)":weekLabels[weekIdx];
+opt.innerHTML='<span>'+escapeHtml(label)+'</span><span class="check">✓</span>';
+opt.addEventListener("click",function(){selectTopPerfWeek(weekIdx);});
+menu.appendChild(opt);
+})(i);
+}
+var activeIdx=currentTopPerfWeekIndex();
+if(triggerText)triggerText.textContent=activeIdx>=0?(activeIdx===weekLabels.length-1?weekLabels[activeIdx]+" (current)":weekLabels[activeIdx]):"Select a week…";
+var opts=menu.querySelectorAll(".custom-select-option");
+opts.forEach(function(o){o.classList.toggle("selected",o.getAttribute("data-index")===String(activeIdx));});
+}
+function selectTopPerfWeek(weekIdx){
+selectedTopPerfWeekIndex=weekIdx;
+closeTopPerfWeekMenu();
+populateTopPerfWeekMenu();
+populateTopPerformers();
+}
+function openTopPerfWeekMenu(){
+document.getElementById("topPerfWeekMenu").classList.add("open");
+document.getElementById("topPerfWeekTrigger").classList.add("open");
+document.getElementById("topPerfWeekTrigger").setAttribute("aria-expanded","true");
+}
+function closeTopPerfWeekMenu(){
+document.getElementById("topPerfWeekMenu").classList.remove("open");
+document.getElementById("topPerfWeekTrigger").classList.remove("open");
+document.getElementById("topPerfWeekTrigger").setAttribute("aria-expanded","false");
+}
 function buildTopPerformersData(){
-var idx=weekLabels.length-1;
+var idx=currentTopPerfWeekIndex();
 if(idx<0)return null;
 var weekOf=apiData?formatWeekOf(apiData.weeks[idx],(apiData.weekEnds||[])[idx]):"";
 var groups=TOPPERF_CATEGORIES.map(function(category){
@@ -1348,6 +1416,15 @@ return lines.join("\n");
 document.getElementById("topPerfCopyBtn").addEventListener("click",function(){
 copyTextToClipboard(buildTopPerformersSlackText(),this);
 });
+document.getElementById("topPerfWeekTrigger").addEventListener("click",function(e){
+e.stopPropagation();
+var menu=document.getElementById("topPerfWeekMenu");
+if(menu.classList.contains("open"))closeTopPerfWeekMenu();else openTopPerfWeekMenu();
+});
+document.addEventListener("click",function(e){
+var dropdown=document.getElementById("topPerfWeekDropdown");
+if(dropdown&&!dropdown.contains(e.target))closeTopPerfWeekMenu();
+});
 
 async function loadData(){
 var statusEl=document.getElementById("status");
@@ -1366,6 +1443,7 @@ weekLabels=data.weeks.map(function(w,i){return formatAuditLabel(i,w,(data.weekEn
 apiData=data;
 updateLastUpdated();
 populateSummaryCard();
+populateTopPerfWeekMenu();
 populateTopPerformers();
 populateLeaderboardWeekMenu();
 populateLeaderboard();
