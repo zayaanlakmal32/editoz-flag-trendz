@@ -52,7 +52,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .skeleton div:nth-child(2){height:85%;}
 .skeleton div:nth-child(3){height:40%;}
 @keyframes shimmer{0%{background-position:100% 0;}100%{background-position:-100% 0;}}
-.stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:10px;}
+.stat-strip-caption{font-size:11.5px;color:#9ca3af;margin:0 0 24px;text-align:center;}
 .stat{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:13px;transition:transform .18s ease,box-shadow .18s ease;}
 .stat:hover{transform:translateY(-3px);box-shadow:0 2px 6px rgba(16,24,40,.07),0 16px 32px rgba(16,24,40,.10);}
 .stat-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:#eef1f5;}
@@ -132,6 +133,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="stat stat-execution"><div class="stat-icon">⚙️</div><div class="stat-text"><span class="stat-value" id="statExecution">–</span><span class="stat-label">Execution Flags</span></div></div>
 <div class="stat stat-creative"><div class="stat-icon">🎨</div><div class="stat-text"><span class="stat-value" id="statCreative">–</span><span class="stat-label">Creative Flags</span></div></div>
 </div>
+<p class="stat-strip-caption">Totals across every audit week on record — grows automatically as new weeks are added. The charts below focus on the current view.</p>
 <div class="grid">
 <div class="chart-card">
 <div class="chart-card-head"><h2>⚙️ Execution Flags</h2><span id="executionTrend"></span></div>
@@ -303,6 +305,16 @@ recordsByWeek=data.recordsByWeek||[];
 weekLabels=data.weeks.map(function(w,i){return formatAuditLabel(i,w,(data.weekEnds||[])[i]);});
 apiData=data;
 
+// Stat cards always reflect the full history on record — every past week
+// plus any new ones added going forward — independent of whichever weeks
+// the charts below happen to be focused on or comparing.
+var grandTotal=(apiData.totalRecords||[]).reduce(function(a,b){return a+b;},0);
+var grandExecution=(apiData.executionFlags||[]).reduce(function(a,b){return a+b;},0);
+var grandCreative=(apiData.creativeFlags||[]).reduce(function(a,b){return a+b;},0);
+document.getElementById("statTotal").textContent=grandTotal;
+document.getElementById("statExecution").textContent=grandExecution;
+document.getElementById("statCreative").textContent=grandCreative;
+
 var VISIBLE_WEEKS=3;
 var offset=Math.max(0,weekLabels.length-VISIBLE_WEEKS);
 defaultIndices=[];
@@ -323,9 +335,6 @@ var chartExecution=indices.map(function(i){return apiData.executionFlags[i];});
 var chartCreative=indices.map(function(i){return apiData.creativeFlags[i];});
 var chartTotals=indices.map(function(i){return (apiData.totalRecords||[])[i]||0;});
 
-document.getElementById("statTotal").textContent=chartTotals.reduce(function(a,b){return a+b;},0);
-document.getElementById("statExecution").textContent=chartExecution.reduce(function(a,b){return a+b;},0);
-document.getElementById("statCreative").textContent=chartCreative.reduce(function(a,b){return a+b;},0);
 renderTrend("executionTrend",chartExecution);
 renderTrend("creativeTrend",chartCreative);
 
