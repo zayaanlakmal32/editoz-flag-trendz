@@ -66,7 +66,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .summary-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;position:relative;z-index:1;}
 .summary-link{font-size:12px;font-weight:600;color:#c7d2fe;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:8px 13px;border-radius:999px;text-decoration:none;transition:background .15s ease;}
 .summary-link:hover{background:rgba(255,255,255,.17);}
-.older-weeks{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease;}
+.older-weeks{display:flex;align-items:flex-start;gap:12px;margin-bottom:24px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease;}
+.older-weeks label{padding-top:6px;}
 .older-weeks:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 36px rgba(0,0,0,.45);}
 .older-weeks label{font-size:12.5px;color:var(--ink);font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:9px;}
 .label-icon{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(236,72,153,.2));display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
@@ -76,8 +77,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .custom-select-trigger.open,.custom-select-trigger:focus-visible{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.22);background:var(--card-alt);}
 .custom-select-arrow{width:8px;height:8px;border-right:2px solid #818cf8;border-bottom:2px solid #818cf8;transform:rotate(45deg);transition:transform .18s ease;flex-shrink:0;}
 .custom-select-trigger.open .custom-select-arrow{transform:rotate(-135deg);}
-.custom-select-menu{position:absolute;top:calc(100% + 8px);left:0;min-width:250px;max-height:280px;overflow-y:auto;background:#1b1e26;border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.35),0 24px 48px rgba(0,0,0,.5);padding:6px;z-index:30;opacity:0;transform:translateY(-8px) scale(.98);pointer-events:none;transition:opacity .16s ease,transform .16s ease;}
-.custom-select-menu.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+/* Expands inline (pushes the page down) instead of floating over the
+content below — a floating overlay here used to overlap the Overall
+Audits card, which reads as a glitch. Growing in normal flow guarantees
+it never overlaps anything. */
+.custom-select-menu{position:relative;min-width:250px;max-height:0;overflow:hidden;background:#1b1e26;border:1px solid transparent;border-radius:14px;box-shadow:none;padding:0 6px;margin-top:0;opacity:0;pointer-events:none;transition:max-height .22s ease,opacity .18s ease,margin-top .22s ease;}
+.custom-select-menu.open{max-height:280px;overflow-y:auto;border-color:var(--border);box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 8px 20px rgba(0,0,0,.35);padding:6px;margin-top:10px;opacity:1;pointer-events:auto;}
 .custom-select-option{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:600;color:var(--ink);padding:10px 12px;border-radius:9px;cursor:pointer;transition:background .12s ease;}
 .custom-select-option:hover{background:rgba(255,255,255,.06);}
 .custom-select-option.selected{background:rgba(99,102,241,.2);color:#c7d2fe;}
