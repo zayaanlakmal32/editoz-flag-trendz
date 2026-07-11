@@ -10,6 +10,16 @@ const WEEK_PROPERTY = "Week Of";
 const EXECUTION_PROPERTY = "⚙️ Flag Execution";
 const CREATIVE_PROPERTY = "🎨 Flag Creative";
 
+// Dedicated fields for the Weekly Leaderboard tab — same table as the
+// Notion "Weekly Dashboard" page (Client Name / Best Post Title / Max Post
+// Views / Product Owner (Auto) / Pod, sorted by Max Post Views). These
+// already flow into the generic tags array below too, but the leaderboard
+// needs Max Post Views as a real number (not a locale-formatted string) to
+// sort correctly, so they're pulled out as their own typed fields.
+const BEST_POST_TITLE_PROPERTY = "🏆 Best Post Title";
+const MAX_POST_VIEWS_PROPERTY = "🔝 Max Post Views";
+const POD_PROPERTY = "Pod";
+
 // Each audit record links to a page in the "Project Tracker" database, which
 // is where the client's program ("Accelerate" vs "DFY") and assigned PO
 // ("PO Name") actually live — the audit database itself doesn't store either
@@ -152,6 +162,18 @@ function extractMeta(props) {
     }
   }
   return { tags, notes, links };
+}
+
+// Best Post Title / Max Post Views are Notion formulas — their computed
+// value lives under formula.string or formula.number depending on the
+// formula's own return type. Pod is a plain select field on the audit
+// record itself (no join needed).
+function extractLeaderboardFields(props) {
+  const bestPostTitle = props[BEST_POST_TITLE_PROPERTY]?.formula?.string || null;
+  const maxViewsFormula = props[MAX_POST_VIEWS_PROPERTY]?.formula;
+  const maxPostViews = typeof maxViewsFormula?.number === "number" ? maxViewsFormula.number : null;
+  const pod = props[POD_PROPERTY]?.select?.name || null;
+  return { bestPostTitle, maxPostViews, pod };
 }
 
 // Builds a map of Project Tracker page ID -> { category, po }. Wrapped so a
@@ -327,7 +349,22 @@ export default async function handler(req, res) {
       const po = trackerInfo?.po || null;
       if (category) recordsWithResolvedCategory += 1;
 
-      bucket.records.push({ title, executionFlag, creativeFlag, posts, tags, notes, links, category, po });
+      const { bestPostTitle, maxPostViews, pod } = extractLeaderboardFields(props);
+
+      bucket.records.push({
+        title,
+        executionFlag,
+        creativeFlag,
+        posts,
+        tags,
+        notes,
+        links,
+        category,
+        po,
+        bestPostTitle,
+        maxPostViews,
+        pod,
+      });
     }
 
     // Every distinct week found, oldest → newest for chart display. This
