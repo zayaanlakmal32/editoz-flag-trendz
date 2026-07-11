@@ -42,7 +42,14 @@ html{scrollbar-color:var(--border) transparent;scrollbar-width:thin;transition:b
 .modal-body,.custom-select-menu{scrollbar-color:var(--border) transparent;scrollbar-width:thin;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;color:var(--ink);-webkit-font-smoothing:antialiased;background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.028) 1px,transparent 0),radial-gradient(950px 460px at 50% -12%,rgba(99,102,241,.20),transparent 60%),radial-gradient(780px 400px at 108% -2%,rgba(236,72,153,.13),transparent 55%),radial-gradient(680px 360px at -6% 38%,rgba(20,184,166,.12),transparent 55%),linear-gradient(180deg,#0b0c10 0%,#101218 100%);background-size:22px 22px,auto,auto,auto,auto;background-attachment:fixed;min-height:100vh;transition:background-color .4s ease,color .4s ease;}
 [data-theme="light"] body{background-image:radial-gradient(circle at 1px 1px,rgba(15,23,42,.035) 1px,transparent 0),radial-gradient(950px 480px at 50% -12%,rgba(99,102,241,.22),transparent 60%),radial-gradient(780px 420px at 106% 8%,rgba(236,72,153,.17),transparent 58%),radial-gradient(720px 400px at -8% 42%,rgba(20,184,166,.17),transparent 58%),radial-gradient(650px 520px at 50% 115%,rgba(251,191,36,.12),transparent 62%),linear-gradient(160deg,#eef0fb 0%,#f3edf7 45%,#fdf1f3 100%);}
-.topbar{background:var(--topbar-bg);backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;transition:background-color .4s ease,border-color .4s ease;}
+/* position+z-index here matter more than they look: backdrop-filter alone
+creates a stacking context for .topbar's children, but .topbar itself was
+still position:static, so its z-index:60 popovers (search/print menus) could
+never paint above .page below it — later DOM siblings always win over an
+earlier static element regardless of a descendant's z-index. Sticky + a
+z-index on .topbar itself fixes that (and sticky keeps the toolbar reachable
+on scroll as a bonus). */
+.topbar{position:sticky;top:0;z-index:70;background:var(--topbar-bg);backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;transition:background-color .4s ease,border-color .4s ease;}
 .topbar-actions{display:flex;align-items:center;gap:12px;}
 .last-updated{font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap;}
 .theme-toggle-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--card-alt);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--accent-text);padding:0;box-shadow:0 1px 2px rgba(0,0,0,.15);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background-color .3s ease,color .3s ease;position:relative;overflow:hidden;}
@@ -332,10 +339,13 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 @media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}.stat-strip{grid-template-columns:1fr;}.summary-grid{grid-template-columns:1fr 1fr;}}
 
 /* Print report — hidden on screen entirely; only exists to be isolated and
-shown when window.print() fires. Plain black-on-white regardless of the
-page's own theme, since it's meant to be printed or saved as a PDF. */
+shown when window.print() fires. Plain, dense, single-page-first layout
+(banner + KPIs + a 2-column grid + a 2-up Top Performers grid) rather than a
+long vertical scroll of full-detail tables, since the goal is a one-page
+overview a PO can glance at, not an exhaustive export. */
 .print-report{display:none;}
 @media print{
+@page{margin:12mm;size:auto;}
 /* The page's decorative dark gradient background (set on html/body for the
 live dashboard) otherwise shows through around/below the report content
 since the report box is only as tall as its own content, not the full
@@ -343,54 +353,64 @@ printed page — that was the black box under the report. Stripping the
 background at print time keeps the whole page plain white. */
 html,body{background:#fff!important;background-image:none!important;box-shadow:none!important;}
 body>*:not(.print-report){display:none!important;}
-.print-report{display:block!important;background:#fff;color:#111;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-.print-report-header h1{font-size:19px;font-weight:800;margin:0 0 2px;}
-.print-report-header p{font-size:12px;color:#555;margin:0 0 18px;}
-.print-report h2{font-size:14px;font-weight:700;margin:22px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px;}
-.print-report table{width:100%;border-collapse:collapse;font-size:11.5px;}
-.print-report th,.print-report td{border:1px solid #ccc;padding:6px 8px;text-align:left;}
-.print-report th{background:#f3f4f6;font-weight:700;}
-.print-report .print-topperf-group{margin-bottom:10px;}
-.print-report .print-topperf-group-title{font-size:12.5px;font-weight:700;margin:0 0 4px;}
-.print-report .print-topperf-row{font-size:11.5px;padding:2px 0;}
-.print-report-footer{margin-top:24px;font-size:10.5px;color:#888;}
-.print-report .print-chronic-note{font-size:11.5px;color:#555;margin:0 0 6px;}
-.print-report .print-chronic-list{margin:0;padding-left:18px;font-size:11.5px;line-height:1.7;column-count:2;column-gap:24px;}
-.print-report .print-kpi-row{display:flex;gap:10px;margin:0 0 6px;flex-wrap:wrap;}
-.print-report .print-kpi{flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:10px 12px;text-align:center;background:#fafafa;}
-.print-report .print-kpi-value{display:block;font-size:20px;font-weight:800;color:#111;}
-.print-report .print-kpi-label{display:block;font-size:9.5px;color:#666;text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
-.print-report .print-section-note{font-size:11px;color:#666;margin:-4px 0 8px;}
-.print-report-accent{height:5px;border-radius:3px;background:linear-gradient(90deg,#6366f1,#ec4899);margin-bottom:20px;}
-.print-report-brand{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;letter-spacing:.03em;color:#4f46e5;text-transform:uppercase;margin-bottom:8px;}
-.print-report-brand span{color:#111;}
+.print-report{display:block!important;background:#fff;color:#111;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:11px;}
+.print-report-banner{background:linear-gradient(120deg,#111827 0%,#312e81 65%,#4c1d55 120%);color:#fff;border-radius:10px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;}
+.print-report-brand{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#c7d2fe;margin:0 0 3px;}
+.print-report-banner h1{font-size:17px;font-weight:800;margin:0 0 2px;color:#fff;}
+.print-report-banner p{font-size:10.5px;color:#cbd5f5;margin:0;}
+.print-report-banner-tag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.16);color:#fff;padding:6px 12px;border-radius:999px;white-space:nowrap;flex-shrink:0;}
+.print-kpi-row{display:flex;gap:7px;margin:0 0 12px;}
+.print-kpi{flex:1;border:1px solid #e5e7eb;border-radius:7px;padding:7px 6px;text-align:center;background:#fafafa;}
+.print-kpi-value{display:block;font-size:16px;font-weight:800;color:#111;line-height:1.15;}
+.print-kpi-label{display:block;font-size:8px;color:#666;text-transform:uppercase;letter-spacing:.02em;margin-top:2px;}
+.print-report h2{font-size:11px;font-weight:800;margin:0 0 6px;padding-bottom:4px;border-bottom:2px solid #111;text-transform:uppercase;letter-spacing:.03em;page-break-after:avoid;}
+.print-report table{width:100%;border-collapse:collapse;font-size:9.5px;}
+.print-report th,.print-report td{border-bottom:1px solid #eee;padding:4px 6px;text-align:left;}
+.print-report th{background:#f8f9fb;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.02em;color:#555;}
+.print-report tbody tr{page-break-inside:avoid;}
+/* Two-column main grid: chart+leaderboard on the left (more horizontal room
+needed for the table), chronic-flags/data-gap callouts in a narrow sidebar —
+this is what actually buys back the vertical space a single stacked column
+would burn through, which was the real reason the old layout spilled to a
+second page. */
+.print-report-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-bottom:14px;page-break-inside:avoid;}
+.print-report-col-main,.print-report-col-side{min-width:0;}
+.print-side-card{border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px;margin-bottom:9px;page-break-inside:avoid;}
+.print-side-card h3{font-size:9.5px;font-weight:800;margin:0 0 6px;text-transform:uppercase;letter-spacing:.02em;color:#111;}
+.print-side-card.watch{border-left:3px solid #f59e0b;}
+.print-side-card.gaps{border-left:3px solid #ef4444;}
+.print-chronic-list,.print-gap-list{margin:0;padding-left:15px;font-size:9.5px;line-height:1.6;}
+.print-section-note{font-size:8.5px;color:#666;margin:4px 0 0;}
 /* CSS-only bar chart for the flag trend — deliberately not a Chart.js canvas
 so it renders correctly the instant window.print() fires, with no dependency
 on the canvas having been visible/sized beforehand (this container is
 display:none right up until the print media query flips it on). */
-.print-trend-legend{display:flex;gap:18px;font-size:10.5px;color:#333;margin:2px 0 4px;}
-.print-trend-legend span.item{display:inline-flex;align-items:center;gap:5px;}
-.print-trend-legend .swatch{width:9px;height:9px;border-radius:2px;display:inline-block;}
+.print-trend-legend{display:flex;gap:14px;font-size:8.5px;color:#333;margin:0 0 4px;}
+.print-trend-legend span.item{display:inline-flex;align-items:center;gap:4px;}
+.print-trend-legend .swatch{width:8px;height:8px;border-radius:2px;display:inline-block;}
 .print-trend-legend .swatch.exec{background:#f59e0b;}
 .print-trend-legend .swatch.creative{background:#6366f1;}
-.print-trend-chart{display:flex;align-items:flex-end;gap:16px;height:130px;margin:14px 0 4px;padding:14px 4px 0;border-bottom:1px solid #ccc;overflow:visible;}
-.print-trend-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;overflow:visible;}
-.print-trend-bars{display:flex;align-items:flex-end;gap:4px;height:100px;overflow:visible;}
-.print-trend-bar{width:13px;border-radius:2px 2px 0 0;position:relative;}
+.print-trend-chart{display:flex;align-items:flex-end;gap:10px;height:95px;margin:8px 0 4px;padding:12px 2px 0;border-bottom:1px solid #ccc;overflow:visible;}
+.print-trend-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;overflow:visible;}
+.print-trend-bars{display:flex;align-items:flex-end;gap:3px;height:70px;overflow:visible;}
+.print-trend-bar{width:10px;border-radius:2px 2px 0 0;position:relative;}
 .print-trend-bar.exec{background:#f59e0b;}
 .print-trend-bar.creative{background:#6366f1;}
-.print-trend-bar-value{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:8.5px;font-weight:700;color:#111;white-space:nowrap;}
-.print-trend-week{font-size:9px;color:#555;text-align:center;white-space:nowrap;}
-.print-report h2{page-break-after:avoid;}
-.print-report table{page-break-inside:auto;}
-.print-report tbody tr{page-break-inside:avoid;}
-#printLeaderboardHeading{page-break-before:always;padding-top:4px;}
-/* The Δ/Trend cells reuse .leaderboard-move and the sparkline SVG from the
-on-screen Leaderboard tab. Every variant already has hardcoded colors except
-"flat", which reads --muted/--tint-soft — theme variables tuned for the dark
-dashboard background, not this always-white report. */
+.print-trend-bar-value{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:7.5px;font-weight:700;color:#111;white-space:nowrap;}
+.print-trend-week{font-size:7.5px;color:#555;text-align:center;white-space:nowrap;}
+/* Top Performers as a 2-up grid of small cards (one per program/category)
+instead of stacked plain-text lines — same information, roughly half the
+vertical space. */
+.print-topperf-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:4px;page-break-inside:avoid;}
+.print-topperf-card{border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;min-width:0;}
+.print-topperf-card h4{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin:0 0 5px;color:#4f46e5;}
+.print-report-footer{margin-top:10px;font-size:8px;color:#888;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:6px;}
+/* The Δ cells reuse .leaderboard-move from the on-screen Leaderboard tab.
+Every variant already has hardcoded colors except "flat", which reads
+--muted/--tint-soft — theme variables tuned for the dark dashboard
+background, not this always-white report. */
 .print-report .leaderboard-move.flat{color:#6b7280;background:#f3f4f6;}
-.print-report .leaderboard-spark-empty{color:#888;}
+.print-report .leaderboard-move{padding:2px 6px;font-size:9px;}
 }
 /* Trigger + popover for picking which week the printable report targets —
 kept as a menu off the print icon itself rather than a persistent topbar
@@ -714,28 +734,41 @@ delay for an entrance rather than everything popping in at once. */
 </div>
 
 <div class="print-report" id="printReport">
-<div class="print-report-accent"></div>
-<div class="print-report-header">
-<div class="print-report-brand">🐬 editoz<span>.club</span></div>
+<div class="print-report-banner">
+<div>
+<p class="print-report-brand">🐬 editoz.club</p>
 <h1>Flag Trends — Weekly Report</h1>
 <p id="printReportWeek"></p>
 </div>
-<h2>Weekly Summary</h2>
+<div class="print-report-banner-tag" id="printReportWeekTag"></div>
+</div>
 <div class="print-kpi-row" id="printKpiRow"></div>
+<div class="print-report-grid">
+<div class="print-report-col-main">
+<h2>Flag Trend</h2>
 <div class="print-trend-legend">
 <span class="item"><span class="swatch exec"></span>Execution Flags</span>
 <span class="item"><span class="swatch creative"></span>Creative Flags</span>
 </div>
 <div class="print-trend-chart" id="printTrendChart"></div>
-<p class="print-section-note">Last 6 audited weeks on record, ending with the report's target week.</p>
-<h2>Clients to Watch</h2>
-<div id="printChronicSection"></div>
-<h2>Top Performers</h2>
-<div id="printTopPerformers"></div>
-<h2 id="printLeaderboardHeading">Weekly Leaderboard — Full Detail</h2>
-<p class="print-section-note" id="printLeaderboardNote"></p>
+<h2>Top 5 — Weekly Leaderboard</h2>
 <table id="printLeaderboardTable"></table>
-<p class="print-report-footer">Generated from the Editoz Flag Trends Dashboard · editoz.club</p>
+<p class="print-section-note" id="printLeaderboardNote"></p>
+</div>
+<div class="print-report-col-side">
+<div class="print-side-card watch">
+<h3>🔁 Clients to Watch</h3>
+<div id="printChronicSection"></div>
+</div>
+<div class="print-side-card gaps" id="printGapsCard">
+<h3>⚠️ Data Gaps</h3>
+<div id="printGapsSection"></div>
+</div>
+</div>
+</div>
+<h2>Top Performers</h2>
+<div class="print-topperf-grid" id="printTopPerformers"></div>
+<p class="print-report-footer"><span>Generated from the Editoz Flag Trends Dashboard</span><span>editoz.club</span></p>
 </div>
 <script>
 function ordinal(n){var s=["th","st","nd","rd"];var v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
@@ -2065,10 +2098,20 @@ return '<div class="print-trend-col">'+
 '</div>';
 }).join("");
 }
+// Clients audited this week but missing Max Post Views entirely — the
+// Leaderboard tab counts these (excludedLeaderboardCount) but never names
+// them; the print report's "Data Gaps" card needs the actual names.
+function excludedLeaderboardClients(weekIdx){
+var records=recordsByWeek[weekIdx]||[];
+return records.filter(function(r){return typeof r.maxPostViews!=="number";}).map(function(r){return r.title;});
+}
 function buildPrintReport(targetIdx){
 var idx=(targetIdx===undefined||targetIdx===null)?weekLabels.length-1:targetIdx;
+var isCurrent=idx===weekLabels.length-1;
 var weekEl=document.getElementById("printReportWeek");
 if(weekEl)weekEl.textContent=idx>=0?weekLabels[idx]+" — generated "+new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}):"No data available";
+var tagEl=document.getElementById("printReportWeekTag");
+if(tagEl)tagEl.textContent=isCurrent?"Current Week":"Past Week";
 
 var c=summaryCounts(idx);
 var kpiEl=document.getElementById("printKpiRow");
@@ -2085,17 +2128,39 @@ kpiEl.innerHTML=kpis.map(function(k){return '<div class="print-kpi"><span class=
 }
 buildPrintTrendChart(idx);
 
+// Sidebar card 1: chronic flags, capped so a long streak list can't push the
+// report past one page — this is an at-a-glance overview, not the full
+// Chronic Flags card from the Dashboard tab (which has no cap).
 var chronicEl=document.getElementById("printChronicSection");
 if(chronicEl){
 var chronic=computeChronicFlags(idx);
 if(chronic.length){
-chronicEl.innerHTML='<p class="print-chronic-note">Flagged 2+ weeks running as of '+escapeHtml(weekLabels[idx]||"this week")+' — worth a closer look:</p>'+
-'<ul class="print-chronic-list">'+chronic.map(function(r){return '<li>'+escapeHtml(r.baseName)+' — '+r.streak+' weeks</li>';}).join("")+'</ul>';
+var shown=chronic.slice(0,6);
+var extra=chronic.length-shown.length;
+chronicEl.innerHTML='<ul class="print-chronic-list">'+shown.map(function(r){return '<li>'+escapeHtml(r.baseName)+' — '+r.streak+' wks</li>';}).join("")+'</ul>'+
+(extra>0?'<p class="print-section-note">+'+extra+' more flagged 2+ weeks.</p>':"");
 }else{
-chronicEl.innerHTML="<p>No clients currently flagged 2+ weeks in a row.</p>";
+chronicEl.innerHTML='<p class="print-section-note">None currently flagged 2+ weeks running.</p>';
 }
 }
 
+// Sidebar card 2: data gaps — same cap-and-note pattern as chronic flags.
+var gapsEl=document.getElementById("printGapsSection");
+if(gapsEl){
+var gapNames=idx>=0?excludedLeaderboardClients(idx):[];
+if(gapNames.length){
+var gapsShown=gapNames.slice(0,6);
+var gapsExtra=gapNames.length-gapsShown.length;
+gapsEl.innerHTML='<ul class="print-gap-list">'+gapsShown.map(function(t){return '<li>'+escapeHtml(clientBaseName(t))+'</li>';}).join("")+'</ul>'+
+(gapsExtra>0?'<p class="print-section-note">+'+gapsExtra+' more missing Max Post Views.</p>':"");
+}else{
+gapsEl.innerHTML='<p class="print-section-note">No audited clients missing Max Post Views.</p>';
+}
+}
+
+// Top Performers — a small card per category (Accelerate / DFY), each its
+// own compact table, laid out 2-up so it costs half the vertical space a
+// stacked plain-text list would.
 var topPerfEl=document.getElementById("printTopPerformers");
 if(topPerfEl){
 var savedTopPerfIdx=selectedTopPerfWeekIndex;
@@ -2104,31 +2169,40 @@ var tpData=buildTopPerformersData();
 selectedTopPerfWeekIndex=savedTopPerfIdx;
 if(tpData){
 topPerfEl.innerHTML=tpData.groups.map(function(g){
-var rows=g.entries.length?g.entries.map(function(e,i){
-return '<div class="print-topperf-row">'+MEDALS[i]+' '+escapeHtml(e.client)+' — '+numberWithCommas(e.views)+' views (PO: '+escapeHtml(e.po||"Unassigned")+')</div>';
-}).join(""):'<div class="print-topperf-row">No categorized posts this week.</div>';
-return '<div class="print-topperf-group"><p class="print-topperf-group-title">'+escapeHtml(g.category.toUpperCase())+'</p>'+rows+'</div>';
+var rowsHtml=g.entries.length?
+'<table><tr><th>#</th><th>Client</th><th>Views</th><th>PO</th></tr>'+
+g.entries.map(function(e,i){return '<tr><td>'+MEDALS[i]+'</td><td>'+escapeHtml(e.client)+'</td><td>'+numberWithCommas(e.views)+'</td><td>'+escapeHtml(e.po||"Unassigned")+'</td></tr>';}).join("")+
+'</table>':
+'<p class="print-section-note">No categorized posts this week.</p>';
+return '<div class="print-topperf-card"><h4>'+escapeHtml(g.category)+'</h4>'+rowsHtml+'</div>';
 }).join("");
 }else{
-topPerfEl.innerHTML="<p>No data available.</p>";
+topPerfEl.innerHTML='<p class="print-section-note">No data available.</p>';
 }
 }
 
+// Leaderboard — top 5 only, trimmed to the columns that matter for a
+// one-glance overview (rank movement + views + owner); the full sortable,
+// filterable table with every column lives on the Leaderboard tab itself.
 var lbTable=document.getElementById("printLeaderboardTable");
 var lbNoteEl=document.getElementById("printLeaderboardNote");
 if(lbTable){
-var lbRows=rankedRecordsForWeek(idx); // full ranked list, not just a top slice
-var lbHtml="<tr><th>#</th><th>Client</th><th>Δ</th><th>Best Post</th><th>Max Views</th><th>Trend</th><th>PO</th><th>Pod</th></tr>";
+var allRanked=rankedRecordsForWeek(idx);
+var lbRows=allRanked.slice(0,5);
+var lbHtml="<tr><th>#</th><th>Client</th><th>Δ</th><th>Max Views</th><th>PO</th></tr>";
 lbRows.forEach(function(r,i){
 var moveHtml=leaderboardMovementBadge(idx,r,i);
-var spark=sparklineSvg(sparklineValuesForClient(clientBaseName(r.title),idx,6));
-lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.title)+"</td><td>"+moveHtml+"</td><td>"+escapeHtml(r.bestPostTitle||"—")+"</td><td>"+numberWithCommas(r.maxPostViews)+"</td><td>"+spark+"</td><td>"+escapeHtml(r.po||"Unassigned")+"</td><td>"+escapeHtml(r.pod||"—")+"</td></tr>";
+lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.title)+"</td><td>"+moveHtml+"</td><td>"+numberWithCommas(r.maxPostViews)+"</td><td>"+escapeHtml(r.po||"Unassigned")+"</td></tr>";
 });
-if(!lbRows.length)lbHtml+="<tr><td colspan=\"8\">No ranked posts this week.</td></tr>";
+if(!lbRows.length)lbHtml+="<tr><td colspan=\"5\">No ranked posts this week.</td></tr>";
 lbTable.innerHTML=lbHtml;
 if(lbNoteEl){
+var remaining=allRanked.length-lbRows.length;
 var excluded=idx>=0?excludedLeaderboardCount(idx):0;
-lbNoteEl.textContent=lbRows.length+" client"+(lbRows.length===1?"":"s")+" ranked this week"+(excluded>0?" — "+excluded+" more audited with no Max Post Views recorded, not shown.":".");
+var noteParts=[];
+if(remaining>0)noteParts.push(remaining+" more ranked client"+(remaining===1?"":"s")+" on the Leaderboard tab");
+if(excluded>0)noteParts.push(excluded+" audited with no Max Post Views");
+lbNoteEl.textContent=noteParts.length?noteParts.join(" · ")+".":"";
 }
 }
 }
