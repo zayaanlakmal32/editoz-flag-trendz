@@ -10,6 +10,16 @@ const WEEK_PROPERTY = "Week Of";
 const EXECUTION_PROPERTY = "⚙️ Flag Execution";
 const CREATIVE_PROPERTY = "🎨 Flag Creative";
 
+// Each audit record links to a page in the "Project Tracker" database, which
+// is where the client's program ("Accelerate" vs "DFY") and assigned PO
+// ("PO Name") actually live — the audit database itself doesn't store either
+// directly. Fetched once per request and joined in by page ID below, so the
+// Top Performers leaderboard can group posts by program and credit the
+// right PO without the user having to duplicate that data into every audit
+// record by hand.
+const PROJECT_TRACKER_DATABASE_ID = "c16dfb55-fcd8-463b-af56-0eddfc0eb214";
+const PROJECT_TRACKER_RELATION_PROPERTY = "📊 Project Tracker";
+
 // Each audit record tracks up to 6 posts: "Top Post 1-3" and
 // "Bottom Post 1-3", each with its own Format / Link / Title / Views.
 const POST_SECTIONS = ["Top", "Bottom"];
@@ -144,6 +154,45 @@ function extractMeta(props) {
   return { tags, notes, links };
 }
 
+// Builds a map of Project Tracker page ID -> { category, po }. Wrapped so a
+// failure here (e.g. the integration losing access to that database) never
+// takes down the whole dashboard — audit records just fall back to no
+// category/PO instead of a hard error.
+async function fetchProjectTrackerMap(token) {
+  const map = new Map();
+  let cursor;
+  for (;;) {
+    const requestBody = { page_size: 100 };
+    if (cursor) requestBody.start_cursor = cursor;
+
+    const notionRes = await fetch(
+      `https://api.notion.com/v1/databases/${PROJECT_TRACKER_DATABASE_ID}/query`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Notion-Version": NOTION_VERSION,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      }
+    );
+    const body = await notionRes.json();
+    if (!notionRes.ok) throw new Error(body?.message || "Project Tracker query failed");
+
+    for (const page of body.results) {
+      const props = page.properties;
+      map.set(page.id, {
+        category: props["Project Type"]?.select?.name || null,
+        po: props["PO Name"]?.select?.name || null,
+      });
+    }
+    if (body.has_more && body.next_cursor) cursor = body.next_cursor;
+    else break;
+  }
+  return map;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate");
 
@@ -155,6 +204,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Resolve Accelerate/DFY + PO info before pulling audit records. If it
+    // fails, we log and continue with an empty map — every record just gets
+    // category/po: null rather than the whole dashboard breaking.
+    let projectTrackerMap = new Map();
+    try {
+      projectTrackerMap = await fetchProjectTrackerMap(token);
+    } catch (trackerErr) {
+      console.error("Project Tracker lookup failed:", trackerErr.message);
+    }
+
     // Notion caps each query response at 100 rows, so we page through
     // start_cursor/has_more until every record has been fetched. Without
     // this, only the most recent ~100 rows would ever be visible, which
@@ -241,7 +300,12 @@ export default async function handler(req, res) {
       const posts = extractPosts(props);
       const { tags, notes, links } = extractMeta(props);
 
-      bucket.records.push({ title, executionFlag, creativeFlag, posts, tags, notes, links });
+      const trackerId = props[PROJECT_TRACKER_RELATION_PROPERTY]?.relation?.[0]?.id || null;
+      const trackerInfo = trackerId ? projectTrackerMap.get(trackerId) : null;
+      const category = trackerInfo?.category || null; // "Accelerate" | "DFY" | null
+      const po = trackerInfo?.po || null;
+
+      bucket.records.push({ title, executionFlag, creativeFlag, posts, tags, notes, links, category, po });
     }
 
     // Every distinct week found, oldest → newest for chart display. This
