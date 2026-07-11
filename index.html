@@ -39,11 +39,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .older-weeks:hover{transform:translateY(-2px);box-shadow:0 2px 6px rgba(16,24,40,.07),0 16px 32px rgba(16,24,40,.10);}
 .older-weeks label{font-size:12.5px;color:var(--ink);font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:9px;}
 .label-icon{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#eef0ff,#f7e8f2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
-.select-wrap{position:relative;}
-.select-wrap select{appearance:none;-webkit-appearance:none;-moz-appearance:none;font-size:12.5px;font-weight:600;font-family:inherit;color:var(--ink);background:#fbfbfd;border:1px solid var(--border);border-radius:10px;padding:10px 36px 10px 14px;cursor:pointer;box-shadow:inset 0 1px 2px rgba(16,24,40,.03);min-width:220px;transition:border-color .15s,box-shadow .15s;}
-.select-wrap select:hover{border-color:#4f46e5;}
-.select-wrap select:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.14);}
-.select-wrap::after{content:"";position:absolute;right:14px;top:50%;width:8px;height:8px;border-right:2px solid #4f46e5;border-bottom:2px solid #4f46e5;transform:translateY(-65%) rotate(45deg);pointer-events:none;}
+.custom-select{position:relative;}
+.custom-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;font-weight:600;font-family:inherit;color:var(--ink);background:#fbfbfd;border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer;box-shadow:inset 0 1px 2px rgba(16,24,40,.03);min-width:220px;transition:border-color .15s,box-shadow .15s,background .15s;}
+.custom-select-trigger:hover{border-color:#4f46e5;}
+.custom-select-trigger.open,.custom-select-trigger:focus-visible{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.14);background:#fff;}
+.custom-select-arrow{width:8px;height:8px;border-right:2px solid #4f46e5;border-bottom:2px solid #4f46e5;transform:rotate(45deg);transition:transform .18s ease;flex-shrink:0;}
+.custom-select-trigger.open .custom-select-arrow{transform:rotate(-135deg);}
+.custom-select-menu{position:absolute;top:calc(100% + 8px);left:0;min-width:250px;max-height:280px;overflow-y:auto;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 12px rgba(16,24,40,.08),0 24px 48px rgba(16,24,40,.16);padding:6px;z-index:30;opacity:0;transform:translateY(-8px) scale(.98);pointer-events:none;transition:opacity .16s ease,transform .16s ease;}
+.custom-select-menu.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+.custom-select-option{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:600;color:var(--ink);padding:10px 12px;border-radius:9px;cursor:pointer;transition:background .12s ease;}
+.custom-select-option:hover{background:#f5f5ff;}
+.custom-select-option.selected{background:#eef0ff;color:#4f46e5;}
+.custom-select-option .check{color:#4f46e5;font-size:12px;font-weight:800;opacity:0;}
+.custom-select-option.selected .check{opacity:1;}
 .reset-chip{font-size:11.5px;font-weight:700;color:#4f46e5;background:#eef0ff;padding:7px 13px;border-radius:999px;border:1px solid #e0e3ff;cursor:pointer;display:none;align-items:center;gap:4px;transition:background .15s;}
 .reset-chip:hover{background:#e0e3ff;}
 .reset-chip.visible{display:inline-flex;}
@@ -138,8 +146,14 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 </div>
 <div id="status"></div>
 <div class="older-weeks">
-<label for="olderWeeksSelect"><span class="label-icon">📅</span>Compare an older week</label>
-<div class="select-wrap"><select id="olderWeeksSelect"><option value="">Select a week…</option></select></div>
+<label for="olderWeeksTrigger"><span class="label-icon">📅</span>Compare an older week</label>
+<div class="custom-select" id="olderWeeksDropdown">
+<button type="button" class="custom-select-trigger" id="olderWeeksTrigger" aria-haspopup="listbox" aria-expanded="false">
+<span id="olderWeeksTriggerText">Select a week…</span>
+<span class="custom-select-arrow"></span>
+</button>
+<div class="custom-select-menu" id="olderWeeksMenu" role="listbox"></div>
+</div>
 <button type="button" class="reset-chip" id="resetCompare">✕ Back to last 3 weeks</button>
 </div>
 <p class="stat-strip-week-label" id="statPrimaryLabel" style="display:none;"></p>
@@ -537,27 +551,64 @@ scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},g
 });
 }
 
+var selectedOlderWeekIndex=null;
+
 function populateOlderWeeks(){
 var currentIndex=weekLabels.length-1;
-var select=document.getElementById("olderWeeksSelect");
-select.innerHTML='<option value="">Select a week…</option>';
+var menu=document.getElementById("olderWeeksMenu");
+menu.innerHTML="";
 for(var i=currentIndex-1;i>=0;i--){
-var opt=document.createElement("option");
-opt.value=String(i);
-opt.textContent=weekLabels[i];
-select.appendChild(opt);
+(function(weekIdx){
+var opt=document.createElement("div");
+opt.className="custom-select-option";
+opt.setAttribute("role","option");
+opt.setAttribute("data-index",String(weekIdx));
+opt.innerHTML='<span>'+escapeHtml(weekLabels[weekIdx])+'</span><span class="check">✓</span>';
+opt.addEventListener("click",function(){selectOlderWeek(weekIdx);});
+menu.appendChild(opt);
+})(i);
 }
 document.querySelector(".older-weeks").style.display=currentIndex>0?"flex":"none";
 }
-document.getElementById("olderWeeksSelect").addEventListener("change",function(e){
-var val=e.target.value;
-if(val==="")return;
-var selectedIndex=parseInt(val,10);
+
+function selectOlderWeek(weekIdx){
+selectedOlderWeekIndex=weekIdx;
+document.getElementById("olderWeeksTriggerText").textContent=weekLabels[weekIdx];
+var menu=document.getElementById("olderWeeksMenu");
+var opts=menu.querySelectorAll(".custom-select-option");
+opts.forEach(function(o){o.classList.toggle("selected",o.getAttribute("data-index")===String(weekIdx));});
+closeOlderWeeksMenu();
 var currentIndex=weekLabels.length-1;
-renderView([selectedIndex,currentIndex],true);
+renderView([weekIdx,currentIndex],true);
+}
+
+function openOlderWeeksMenu(){
+document.getElementById("olderWeeksMenu").classList.add("open");
+document.getElementById("olderWeeksTrigger").classList.add("open");
+document.getElementById("olderWeeksTrigger").setAttribute("aria-expanded","true");
+}
+function closeOlderWeeksMenu(){
+document.getElementById("olderWeeksMenu").classList.remove("open");
+document.getElementById("olderWeeksTrigger").classList.remove("open");
+document.getElementById("olderWeeksTrigger").setAttribute("aria-expanded","false");
+}
+document.getElementById("olderWeeksTrigger").addEventListener("click",function(e){
+e.stopPropagation();
+var menu=document.getElementById("olderWeeksMenu");
+if(menu.classList.contains("open"))closeOlderWeeksMenu();else openOlderWeeksMenu();
 });
+document.addEventListener("click",function(e){
+var dropdown=document.getElementById("olderWeeksDropdown");
+if(dropdown&&!dropdown.contains(e.target))closeOlderWeeksMenu();
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeOlderWeeksMenu();});
 document.getElementById("resetCompare").addEventListener("click",function(){
-document.getElementById("olderWeeksSelect").value="";
+selectedOlderWeekIndex=null;
+document.getElementById("olderWeeksTriggerText").textContent="Select a week…";
+var menu=document.getElementById("olderWeeksMenu");
+var opts=menu.querySelectorAll(".custom-select-option");
+opts.forEach(function(o){o.classList.remove("selected");});
+closeOlderWeeksMenu();
 renderView(defaultIndices,false);
 });
 loadData();
