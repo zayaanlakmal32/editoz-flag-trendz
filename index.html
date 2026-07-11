@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Editoz Flag Trends</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23131417'/%3E%3Cpath d='M4 14C9 10 17 9.5 22 12C25 13.5 27 13 29 11.5C26 16 19 17.5 13.5 15C10 13.4 7 13 4 14Z' fill='white'/%3E%3Cpath d='M4 19C9 15.5 16 15 21 17.5C24 19 26 18.5 28 17C25 21.5 18 22.5 13 20.5C9.5 19 6.5 18.6 4 19Z' fill='white' fill-opacity='0.7'/%3E%3C/svg%3E" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
 <style>
 :root{--ink:#14161a;--muted:#6b7280;--bg:#f4f5f7;--card:#ffffff;--border:#e8e9ec;--shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);}
@@ -26,9 +27,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .chart-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
 .chart-card-head h2{font-size:14.5px;font-weight:600;margin:0;display:flex;align-items:center;gap:8px;}
 .badge{font-size:11px;font-weight:600;color:var(--muted);background:#f2f3f5;padding:4px 9px;border-radius:999px;letter-spacing:.01em;}
+.trend{font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;}
+.trend.up{color:#b42318;background:#fef3f2;}
+.trend.down{color:#0f7a47;background:#ecfdf3;}
+.trend.flat{color:var(--muted);background:#f2f3f5;}
 .chart-wrap{position:relative;height:260px;}
+.skeleton{position:absolute;inset:0;display:flex;align-items:flex-end;gap:14px;padding:0 8px;}
+.skeleton div{flex:1;border-radius:8px 8px 0 0;background:linear-gradient(90deg,#eef0f2 25%,#e4e6ea 37%,#eef0f2 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;}
+.skeleton div:nth-child(1){height:55%;}
+.skeleton div:nth-child(2){height:85%;}
+.skeleton div:nth-child(3){height:40%;}
+@keyframes shimmer{0%{background-position:100% 0;}100%{background-position:-100% 0;}}
+.stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);}
+.stat-value{display:block;font-size:24px;font-weight:700;letter-spacing:-0.02em;}
+.stat-label{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;}
 footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
-@media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}}
+@media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}.stat-strip{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -48,14 +63,25 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <p>Execution &amp; Creative flags across the last 3 audit weeks</p>
 </div>
 <div id="status"></div>
+<div class="stat-strip">
+<div class="stat"><span class="stat-value" id="statTotal">–</span><span class="stat-label">Records Audited</span></div>
+<div class="stat"><span class="stat-value" id="statExecution">–</span><span class="stat-label">Execution Flags</span></div>
+<div class="stat"><span class="stat-value" id="statCreative">–</span><span class="stat-label">Creative Flags</span></div>
+</div>
 <div class="grid">
 <div class="chart-card">
-<div class="chart-card-head"><h2>⚙️ Execution Flags</h2><span class="badge">3-week trend</span></div>
-<div class="chart-wrap"><canvas id="executionChart"></canvas></div>
+<div class="chart-card-head"><h2>⚙️ Execution Flags</h2><span id="executionTrend"></span></div>
+<div class="chart-wrap">
+<div class="skeleton" id="executionSkeleton"><div></div><div></div><div></div></div>
+<canvas id="executionChart"></canvas>
+</div>
 </div>
 <div class="chart-card">
-<div class="chart-card-head"><h2>🎨 Creative Flags</h2><span class="badge">3-week trend</span></div>
-<div class="chart-wrap"><canvas id="creativeChart"></canvas></div>
+<div class="chart-card-head"><h2>🎨 Creative Flags</h2><span id="creativeTrend"></span></div>
+<div class="chart-wrap">
+<div class="skeleton" id="creativeSkeleton"><div></div><div></div><div></div></div>
+<canvas id="creativeChart"></canvas>
+</div>
 </div>
 </div>
 <footer>Weekly Audit Records &middot; synced from Notion</footer>
@@ -64,6 +90,21 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 function ordinal(n){var s=["th","st","nd","rd"];var v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
 function formatWeekRange(isoDate){var start=new Date(isoDate+"T00:00:00");var end=new Date(start);end.setDate(start.getDate()+6);function fmt(d){return d.toLocaleString("en-US",{month:"long"})+" "+ordinal(d.getDate());}return fmt(start)+" - "+fmt(end);}
 function makeGradient(ctx,chartArea,colorTop,colorBottom){var gradient=ctx.createLinearGradient(0,chartArea.top,0,chartArea.bottom);gradient.addColorStop(0,colorTop);gradient.addColorStop(1,colorBottom);return gradient;}
+function hexToRgba(hex,alpha){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return "rgba("+r+","+g+","+b+","+alpha+")";}
+function renderTrend(elId,values){
+var el=document.getElementById(elId);
+var current=values[values.length-1],previous=values[values.length-2];
+if(previous===undefined){el.remove();return;}
+if(previous===0){
+if(current===0){el.className="trend flat";el.textContent="– 0%";}
+else{el.className="trend up";el.textContent="▲ new";}
+return;
+}
+var pct=Math.round(((current-previous)/previous)*100);
+if(pct>0){el.className="trend up";el.textContent="▲ +"+pct+"%";}
+else if(pct<0){el.className="trend down";el.textContent="▼ "+pct+"%";}
+else{el.className="trend flat";el.textContent="– 0%";}
+}
 async function loadData(){
 var statusEl=document.getElementById("status");
 try{
@@ -76,20 +117,27 @@ console.error("API error:",data);
 return;
 }
 var labels=data.weeks.map(formatWeekRange);
-renderChart("executionChart",labels,data.executionFlags,"#4f46e5","#7c7ff2");
-renderChart("creativeChart",labels,data.creativeFlags,"#db2777","#f0479f");
+var totals=data.totalRecords||[];
+document.getElementById("statTotal").textContent=totals.reduce(function(a,b){return a+b;},0);
+document.getElementById("statExecution").textContent=data.executionFlags.reduce(function(a,b){return a+b;},0);
+document.getElementById("statCreative").textContent=data.creativeFlags.reduce(function(a,b){return a+b;},0);
+renderTrend("executionTrend",data.executionFlags);
+renderTrend("creativeTrend",data.creativeFlags);
+renderChart("executionChart","executionSkeleton",labels,data.executionFlags,totals,"#4f46e5","#7c7ff2");
+renderChart("creativeChart","creativeSkeleton",labels,data.creativeFlags,totals,"#db2777","#f0479f");
 }catch(err){
 statusEl.classList.add("visible");
 statusEl.textContent="Something went wrong rendering the dashboard: "+err.message;
 console.error(err);
 }
 }
-function renderChart(canvasId,labels,values,colorTop,colorBottom){
+function renderChart(canvasId,skeletonId,labels,values,totals,colorTop,colorBottom){
 var ctx=document.getElementById(canvasId).getContext("2d");
+var lastIndex=values.length-1;
 new Chart(ctx,{
 type:"bar",
-data:{labels:labels,datasets:[{label:"Flags",data:values,backgroundColor:function(context){var chart=context.chart;var ctx2=chart.ctx;var chartArea=chart.chartArea;if(!chartArea)return colorTop;return makeGradient(ctx2,chartArea,colorTop,colorBottom);},borderRadius:8,maxBarThickness:72}]},
-options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}}
+data:{labels:labels,datasets:[{label:"Flags",data:values,backgroundColor:function(context){var i=context.dataIndex;var chart=context.chart;var ctx2=chart.ctx;var chartArea=chart.chartArea;if(!chartArea)return colorTop;if(i===lastIndex)return makeGradient(ctx2,chartArea,colorTop,colorBottom);return hexToRgba(colorTop,0.28);},borderRadius:8,maxBarThickness:72}]},
+options:{responsive:true,maintainAspectRatio:false,animation:{onComplete:function(){var sk=document.getElementById(skeletonId);if(sk)sk.style.display="none";}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false,callbacks:{label:function(item){var total=totals[item.dataIndex]||0;var rate=total>0?Math.round((item.raw/total)*100):0;return item.raw+" flags — "+rate+"% of "+total+" records";}}}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}}
 });
 }
 loadData();
