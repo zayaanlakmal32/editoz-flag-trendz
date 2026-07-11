@@ -90,6 +90,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .topperf-po{font-size:11px;font-weight:600;color:rgba(255,255,255,.55);white-space:nowrap;}
 .topperf-banner{margin-top:10px;font-size:12.5px;color:rgba(255,255,255,.82);line-height:1.55;}
 .topperf-empty{font-size:12.5px;color:rgba(255,255,255,.5);padding:6px 0;}
+.topperf-warning{font-size:12.5px;color:#fcd34d;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:10px 14px;margin:0 0 16px;position:relative;z-index:1;line-height:1.5;}
 .older-weeks{display:flex;align-items:flex-start;gap:12px;margin-bottom:24px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease;}
 .older-weeks label{padding-top:6px;}
 .older-weeks:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 36px rgba(0,0,0,.45);}
@@ -186,6 +187,13 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 .link-chip{font-size:11px;font-weight:600;color:#a5b4fc;background:rgba(99,102,241,.16);padding:3px 9px;border-radius:999px;text-decoration:none;white-space:nowrap;}
 .link-chip:hover{background:rgba(99,102,241,.26);}
 .chart-wrap canvas{cursor:pointer;}
+.tabs{display:flex;gap:6px;margin-bottom:24px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--shadow);width:fit-content;}
+.tab-btn{font-size:13px;font-weight:700;font-family:inherit;color:var(--muted);background:transparent;border:none;padding:9px 18px;border-radius:10px;cursor:pointer;transition:background .15s ease,color .15s ease;white-space:nowrap;}
+.tab-btn:hover{color:var(--ink);}
+.tab-btn.active{color:#fff;background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 4px 14px rgba(99,102,241,.32);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+@media (max-width:480px){.tabs{width:100%;}.tab-btn{flex:1;padding:9px 10px;}}
 @media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}.stat-strip{grid-template-columns:1fr;}.summary-grid{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
@@ -215,6 +223,11 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 <p>Audit volume, execution &amp; creative flags for the current and prior 2 audit weeks</p>
 </div>
 <div id="status"></div>
+<div class="tabs" role="tablist">
+<button type="button" class="tab-btn active" id="tabBtnDashboard" role="tab" aria-selected="true">📊 Dashboard</button>
+<button type="button" class="tab-btn" id="tabBtnTopPerf" role="tab" aria-selected="false">🏆 Top Performers</button>
+</div>
+<div id="tabPanelDashboard" class="tab-panel active">
 <div class="summary-card" id="summaryCard">
 <div class="summary-card-head">
 <div class="summary-card-title"><span class="summary-icon">📣</span><span>Weekly Summary</span></div>
@@ -233,14 +246,6 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 <a class="summary-link" href="https://app.notion.com/p/editozclub/507ca77b02454fb5bb87150b93f31910?v=374b6494fc1481d7b6b7000c3e379310" target="_blank" rel="noopener noreferrer">🎨 Weekly Creative Flagged Project List</a>
 <a class="summary-link" href="https://app.notion.com/p/editozclub/507ca77b02454fb5bb87150b93f31910?v=374b6494fc148118b5e9000c20d2f834" target="_blank" rel="noopener noreferrer">⚙️ Weekly Operational Flagged Project List</a>
 </div>
-</div>
-<div class="topperf-card" id="topPerformersCard">
-<div class="topperf-head">
-<div class="topperf-title"><span class="topperf-icon">🏆</span><span>Top Performers</span></div>
-<button type="button" class="summary-copy-btn" id="topPerfCopyBtn"><span id="topPerfCopyBtnText">📋 Copy for Slack</span></button>
-</div>
-<p class="topperf-subtitle" id="topPerfSubtitle">–</p>
-<div class="topperf-groups" id="topPerfGroups"></div>
 </div>
 <p class="stat-strip-week-label" id="statPrimaryLabel" style="display:none;"></p>
 <div class="stat-strip">
@@ -292,6 +297,18 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 <canvas id="creativeChart"></canvas>
 </div>
 <div class="hint">Click a point to see the flagged creative records</div>
+</div>
+</div>
+</div>
+<div id="tabPanelTopPerformers" class="tab-panel">
+<div class="topperf-card" id="topPerformersCard">
+<div class="topperf-head">
+<div class="topperf-title"><span class="topperf-icon">🏆</span><span>Top Performers</span></div>
+<button type="button" class="summary-copy-btn" id="topPerfCopyBtn"><span id="topPerfCopyBtnText">📋 Copy for Slack</span></button>
+</div>
+<p class="topperf-subtitle" id="topPerfSubtitle">–</p>
+<p class="topperf-warning" id="topPerfWarning" style="display:none;"></p>
+<div class="topperf-groups" id="topPerfGroups"></div>
 </div>
 </div>
 <footer>Weekly Audit Records &middot; synced from Notion<br><span class="credit" id="copyrightLine"></span></footer>
@@ -679,8 +696,21 @@ function populateTopPerformers(){
 var data=buildTopPerformersData();
 var container=document.getElementById("topPerfGroups");
 var subtitleEl=document.getElementById("topPerfSubtitle");
+var warningEl=document.getElementById("topPerfWarning");
 if(!data){container.innerHTML="";if(subtitleEl)subtitleEl.textContent="No data yet.";return;}
 if(subtitleEl)subtitleEl.textContent=data.weekLabel+" — best-viewed post per program, any client";
+// A linked count of 0 almost always means the Notion integration hasn't
+// been added as a connection on the Project Tracker database — every
+// record then has no category/PO and this section looks permanently
+// empty. Surface that directly instead of a generic "no data" message.
+if(warningEl){
+if(apiData&&apiData.projectTrackerLinkedCount===0){
+warningEl.textContent="⚠️ Couldn't read the Project Tracker database (0 pages linked) — in Notion, open Project Tracker → \"...\" menu → Connections, and add the same integration used for Weekly Audit Records. Until then this section stays empty.";
+warningEl.style.display="block";
+}else{
+warningEl.style.display="none";
+}
+}
 container.innerHTML=data.groups.map(function(g){
 var rowsHtml=g.entries.length?g.entries.map(function(e,i){
 return '<div class="topperf-row">'+
@@ -954,6 +984,16 @@ Promise.all([loadData(),minSpin]).then(function(){btn.classList.remove("spinning
 });
 var copyrightEl=document.getElementById("copyrightLine");
 if(copyrightEl)copyrightEl.textContent="© "+new Date().getFullYear()+" Zayaan. All rights reserved.";
+function switchTab(tab){
+document.getElementById("tabBtnDashboard").classList.toggle("active",tab==="dashboard");
+document.getElementById("tabBtnTopPerf").classList.toggle("active",tab==="topperf");
+document.getElementById("tabBtnDashboard").setAttribute("aria-selected",tab==="dashboard"?"true":"false");
+document.getElementById("tabBtnTopPerf").setAttribute("aria-selected",tab==="topperf"?"true":"false");
+document.getElementById("tabPanelDashboard").classList.toggle("active",tab==="dashboard");
+document.getElementById("tabPanelTopPerformers").classList.toggle("active",tab==="topperf");
+}
+document.getElementById("tabBtnDashboard").addEventListener("click",function(){switchTab("dashboard");});
+document.getElementById("tabBtnTopPerf").addEventListener("click",function(){switchTab("topperf");});
 loadData();
 </script>
 </body>
