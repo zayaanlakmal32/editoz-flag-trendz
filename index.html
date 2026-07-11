@@ -75,6 +75,12 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 .modal-head p{margin:2px 0 0;font-size:12.5px;color:var(--muted);}
 .modal-close{border:none;background:#f2f3f5;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--muted);flex-shrink:0;}
 .modal-close:hover{background:#e8e9ec;}
+.modal-search{padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.modal-search-wrap{position:relative;}
+.modal-search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;opacity:.6;}
+.modal-search input{width:100%;font-size:13px;font-family:inherit;font-weight:500;color:var(--ink);padding:10px 14px 10px 36px;border:1px solid var(--border);border-radius:10px;background:#fafbfc;transition:border-color .15s,box-shadow .15s,background .15s;}
+.modal-search input:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.12);background:#fff;}
+.modal-empty{padding:36px 12px;text-align:center;color:var(--muted);font-size:13px;}
 .modal-body{overflow-y:auto;padding:4px 12px;}
 .record-row{padding:14px 12px;border-bottom:1px solid #f2f3f5;}
 .record-row:last-child{border-bottom:none;}
@@ -161,6 +167,12 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div><h3 id="modalTitle">Week</h3><p id="modalSubtitle"></p></div>
 <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
 </div>
+<div class="modal-search">
+<div class="modal-search-wrap">
+<span class="modal-search-icon">🔍</span>
+<input type="text" id="clientSearchInput" placeholder="Search clients…" autocomplete="off" />
+</div>
+</div>
 <div class="modal-body" id="modalBody"></div>
 </div>
 </div>
@@ -219,6 +231,8 @@ var backdrop=document.getElementById("modalBackdrop");
 var records=recordsByWeek[weekIndex]||[];
 document.getElementById("modalTitle").textContent=weekLabels[weekIndex];
 document.getElementById("modalSubtitle").textContent=records.length+" record"+(records.length===1?"":"s")+" audited this week";
+var searchInput=document.getElementById("clientSearchInput");
+if(searchInput)searchInput.value="";
 var body=document.getElementById("modalBody");
 body.innerHTML="";
 if(records.length===0){
@@ -228,6 +242,7 @@ var NOTE_PREVIEW=160;
 records.forEach(function(r){
 var row=document.createElement("div");
 row.className="record-row";
+row.setAttribute("data-client",String(r.title||"").toLowerCase());
 
 var tagsHtml=(r.tags&&r.tags.length)?'<div class="record-tags">'+r.tags.map(function(t){return '<div class="tag"><span class="tag-label">'+escapeHtml(t.label)+'</span><span class="tag-value">'+escapeHtml(t.value)+'</span></div>';}).join("")+'</div>':"";
 
@@ -269,13 +284,33 @@ row.innerHTML=
 tagsHtml+postsHtml+notesHtml+linksHtml;
 body.appendChild(row);
 });
+var emptyState=document.createElement("div");
+emptyState.className="modal-empty";
+emptyState.id="modalEmptyState";
+emptyState.style.display="none";
+emptyState.textContent="No clients match your search.";
+body.appendChild(emptyState);
 backdrop.classList.add("visible");
+}
+function filterModalRecords(query){
+var q=String(query||"").trim().toLowerCase();
+var rows=document.querySelectorAll("#modalBody .record-row");
+var visibleCount=0;
+rows.forEach(function(row){
+var client=row.getAttribute("data-client")||"";
+var match=q===""||client.indexOf(q)!==-1;
+row.style.display=match?"":"none";
+if(match)visibleCount++;
+});
+var emptyEl=document.getElementById("modalEmptyState");
+if(emptyEl)emptyEl.style.display=(q!==""&&visibleCount===0)?"block":"none";
 }
 function closeModal(){document.getElementById("modalBackdrop").classList.remove("visible");}
 function escapeHtml(str){var d=document.createElement("div");d.textContent=String(str);return d.innerHTML;}
 function escapeAttr(str){return escapeHtml(str).replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
 document.getElementById("modalClose").addEventListener("click",closeModal);
 document.getElementById("modalBackdrop").addEventListener("click",function(e){if(e.target===e.currentTarget)closeModal();});
+document.getElementById("clientSearchInput").addEventListener("input",function(e){filterModalRecords(e.target.value);});
 document.getElementById("modalBody").addEventListener("click",function(e){
 if(!e.target.classList.contains("note-toggle"))return;
 var block=e.target.closest(".note-block");
