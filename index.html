@@ -355,15 +355,55 @@ body>*:not(.print-report){display:none!important;}
 .print-report .print-topperf-row{font-size:11.5px;padding:2px 0;}
 .print-report-footer{margin-top:24px;font-size:10.5px;color:#888;}
 .print-report .print-chronic-note{font-size:11.5px;color:#555;margin:0 0 6px;}
-.print-report .print-chronic-list{margin:0;padding-left:18px;font-size:11.5px;line-height:1.7;}
+.print-report .print-chronic-list{margin:0;padding-left:18px;font-size:11.5px;line-height:1.7;column-count:2;column-gap:24px;}
+.print-report .print-kpi-row{display:flex;gap:10px;margin:0 0 6px;flex-wrap:wrap;}
+.print-report .print-kpi{flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:10px 12px;text-align:center;background:#fafafa;}
+.print-report .print-kpi-value{display:block;font-size:20px;font-weight:800;color:#111;}
+.print-report .print-kpi-label{display:block;font-size:9.5px;color:#666;text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+.print-report .print-section-note{font-size:11px;color:#666;margin:-4px 0 8px;}
+.print-report-accent{height:5px;border-radius:3px;background:linear-gradient(90deg,#6366f1,#ec4899);margin-bottom:20px;}
+.print-report-brand{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;letter-spacing:.03em;color:#4f46e5;text-transform:uppercase;margin-bottom:8px;}
+.print-report-brand span{color:#111;}
+/* CSS-only bar chart for the flag trend — deliberately not a Chart.js canvas
+so it renders correctly the instant window.print() fires, with no dependency
+on the canvas having been visible/sized beforehand (this container is
+display:none right up until the print media query flips it on). */
+.print-trend-legend{display:flex;gap:18px;font-size:10.5px;color:#333;margin:2px 0 4px;}
+.print-trend-legend span.item{display:inline-flex;align-items:center;gap:5px;}
+.print-trend-legend .swatch{width:9px;height:9px;border-radius:2px;display:inline-block;}
+.print-trend-legend .swatch.exec{background:#f59e0b;}
+.print-trend-legend .swatch.creative{background:#6366f1;}
+.print-trend-chart{display:flex;align-items:flex-end;gap:16px;height:130px;margin:14px 0 4px;padding:14px 4px 0;border-bottom:1px solid #ccc;overflow:visible;}
+.print-trend-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;overflow:visible;}
+.print-trend-bars{display:flex;align-items:flex-end;gap:4px;height:100px;overflow:visible;}
+.print-trend-bar{width:13px;border-radius:2px 2px 0 0;position:relative;}
+.print-trend-bar.exec{background:#f59e0b;}
+.print-trend-bar.creative{background:#6366f1;}
+.print-trend-bar-value{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:8.5px;font-weight:700;color:#111;white-space:nowrap;}
+.print-trend-week{font-size:9px;color:#555;text-align:center;white-space:nowrap;}
+.print-report h2{page-break-after:avoid;}
+.print-report table{page-break-inside:auto;}
+.print-report tbody tr{page-break-inside:avoid;}
+#printLeaderboardHeading{page-break-before:always;padding-top:4px;}
+/* The Δ/Trend cells reuse .leaderboard-move and the sparkline SVG from the
+on-screen Leaderboard tab. Every variant already has hardcoded colors except
+"flat", which reads --muted/--tint-soft — theme variables tuned for the dark
+dashboard background, not this always-white report. */
+.print-report .leaderboard-move.flat{color:#6b7280;background:#f3f4f6;}
+.print-report .leaderboard-spark-empty{color:#888;}
+}
 /* Trigger + popover for picking which week the printable report targets —
 kept as a menu off the print icon itself rather than a persistent topbar
-control, so it doesn't crowd the other icon buttons. */
+control, so it doesn't crowd the other icon buttons. On-screen only (the
+@media print block above hides everything except .print-report anyway). */
 .print-report-wrap{position:relative;}
-.print-week-menu{position:absolute;top:calc(100% + 10px);right:0;min-width:190px;max-height:280px;overflow-y:auto;background:var(--card-alt);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.28);padding:6px;display:none;z-index:60;}
-.print-week-menu.open{display:block;}
-.print-week-option{font-size:12.5px;font-weight:600;color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;}
+.print-week-menu{position:absolute;top:calc(100% + 10px);right:0;min-width:200px;max-height:300px;overflow-y:auto;background:var(--card-alt);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 36px rgba(0,0,0,.35);padding:6px;display:none;z-index:60;}
+.print-week-menu.open{display:block;animation:menuPop .14s ease;}
+.print-week-menu-label{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:8px 12px 6px;}
+.print-week-option{font-size:12.5px;font-weight:600;color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:background .12s ease;}
 .print-week-option:hover{background:var(--tint-soft);}
+.print-week-option.current{color:var(--accent-text);}
+@keyframes menuPop{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
 /* Global client search — jump straight to a client's history without
 scanning the Leaderboard or Chronic Flags list for their name. */
 .global-search-wrap{position:relative;display:flex;align-items:center;gap:7px;background:var(--card-alt);border:1px solid var(--border);border-radius:999px;padding:8px 14px;transition:border-color .15s ease,box-shadow .15s ease,background-color .4s ease;}
@@ -371,16 +411,15 @@ scanning the Leaderboard or Chronic Flags list for their name. */
 .global-search-icon{font-size:12px;opacity:.7;flex-shrink:0;}
 #globalClientSearch{border:none;background:none;outline:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);width:130px;}
 #globalClientSearch::placeholder{color:var(--muted);font-weight:500;}
-.global-search-menu{position:absolute;top:calc(100% + 8px);left:0;min-width:230px;max-width:300px;max-height:300px;overflow-y:auto;background:var(--card-alt);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.25);padding:6px;display:none;z-index:60;}
-.global-search-menu.open{display:block;}
-.global-search-option{font-size:12.5px;font-weight:600;color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;}
+.global-search-menu{position:absolute;top:calc(100% + 8px);left:0;min-width:230px;max-width:300px;max-height:300px;overflow-y:auto;background:var(--card-alt);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 36px rgba(0,0,0,.3);padding:6px;display:none;z-index:60;}
+.global-search-menu.open{display:block;animation:menuPop .14s ease;}
+.global-search-option{font-size:12.5px;font-weight:600;color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;transition:background .12s ease;}
 .global-search-option:hover,.global-search-option.active{background:var(--tint-soft);}
 .global-search-empty{font-size:12px;color:var(--muted);padding:9px 12px;}
 /* Inline sparkline in the Leaderboard's Trend column — a quick "shape of the
 last few weeks" without opening the full client history modal. */
 .leaderboard-spark{display:flex;align-items:center;justify-content:center;}
 .leaderboard-spark-empty{color:var(--muted);}
-}
 
 /* Light-mode text-contrast fixes — a handful of pill/badge labels were
 tuned as pale text over a dark card and need a darker shade of the same
@@ -675,19 +714,28 @@ delay for an entrance rather than everything popping in at once. */
 </div>
 
 <div class="print-report" id="printReport">
+<div class="print-report-accent"></div>
 <div class="print-report-header">
-<h1>editoz.club — Flag Trends Weekly Report</h1>
+<div class="print-report-brand">🐬 editoz<span>.club</span></div>
+<h1>Flag Trends — Weekly Report</h1>
 <p id="printReportWeek"></p>
 </div>
 <h2>Weekly Summary</h2>
-<table id="printSummaryTable"></table>
+<div class="print-kpi-row" id="printKpiRow"></div>
+<div class="print-trend-legend">
+<span class="item"><span class="swatch exec"></span>Execution Flags</span>
+<span class="item"><span class="swatch creative"></span>Creative Flags</span>
+</div>
+<div class="print-trend-chart" id="printTrendChart"></div>
+<p class="print-section-note">Last 6 audited weeks on record, ending with the report's target week.</p>
 <h2>Clients to Watch</h2>
 <div id="printChronicSection"></div>
 <h2>Top Performers</h2>
 <div id="printTopPerformers"></div>
-<h2>Leaderboard (Top 10 by Max Post Views)</h2>
+<h2 id="printLeaderboardHeading">Weekly Leaderboard — Full Detail</h2>
+<p class="print-section-note" id="printLeaderboardNote"></p>
 <table id="printLeaderboardTable"></table>
-<p class="print-report-footer">Generated from the Editoz Flag Trends Dashboard.</p>
+<p class="print-report-footer">Generated from the Editoz Flag Trends Dashboard · editoz.club</p>
 </div>
 <script>
 function ordinal(n){var s=["th","st","nd","rd"];var v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
@@ -1985,17 +2033,57 @@ Promise.all([loadData(),minSpin]).then(function(){btn.classList.remove("spinning
 // ---- Printable weekly report — targets whichever week is picked from the
 // print button's week menu (defaults to the latest/current week), so you can
 // print last week's snapshot too instead of always the newest one.
+// Six audited weeks ending at idx, oldest first — feeds the print report's
+// CSS-only flag trend chart. A plain bar chart built from divs rather than a
+// Chart.js canvas, since the print report sits in a display:none container
+// until the moment window.print() fires; a canvas born inside a hidden
+// element has nothing to size itself against, but divs+CSS don't care.
+function buildPrintTrendChart(idx){
+var el=document.getElementById("printTrendChart");
+if(!el)return;
+if(idx<0){el.innerHTML="";return;}
+var start=Math.max(0,idx-5);
+var weeks=[];
+for(var i=start;i<=idx;i++)weeks.push(i);
+var counts=weeks.map(function(w){
+var recs=recordsByWeek[w]||[];
+return {execution:recs.filter(function(r){return r.executionFlag;}).length,creative:recs.filter(function(r){return r.creativeFlag;}).length};
+});
+var maxVal=1;
+counts.forEach(function(c){maxVal=Math.max(maxVal,c.execution,c.creative);});
+el.innerHTML=weeks.map(function(w,i){
+var c=counts[i];
+var eh=Math.max(3,Math.round((c.execution/maxVal)*100));
+var ch=Math.max(3,Math.round((c.creative/maxVal)*100));
+var label=(weekLabels[w]||"").replace(" audit","");
+return '<div class="print-trend-col">'+
+'<div class="print-trend-bars">'+
+'<div class="print-trend-bar exec" style="height:'+eh+'px"><span class="print-trend-bar-value">'+c.execution+'</span></div>'+
+'<div class="print-trend-bar creative" style="height:'+ch+'px"><span class="print-trend-bar-value">'+c.creative+'</span></div>'+
+'</div>'+
+'<div class="print-trend-week">'+escapeHtml(label)+'</div>'+
+'</div>';
+}).join("");
+}
 function buildPrintReport(targetIdx){
 var idx=(targetIdx===undefined||targetIdx===null)?weekLabels.length-1:targetIdx;
 var weekEl=document.getElementById("printReportWeek");
 if(weekEl)weekEl.textContent=idx>=0?weekLabels[idx]+" — generated "+new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}):"No data available";
 
 var c=summaryCounts(idx);
-var summaryTable=document.getElementById("printSummaryTable");
-if(summaryTable){
-summaryTable.innerHTML="<tr><th>Total Audited</th><th>Creative Flags</th><th>Execution Flags</th><th>Both Flagged</th><th>Unique Flagged</th><th>Clean</th></tr>"+
-"<tr><td>"+c.total+"</td><td>"+c.creative+"</td><td>"+c.execution+"</td><td>"+c.both+"</td><td>"+c.unique+"</td><td>"+c.clean+"</td></tr>";
+var kpiEl=document.getElementById("printKpiRow");
+if(kpiEl){
+var kpis=[
+{label:"Total Audited",value:c.total},
+{label:"Execution Flags",value:c.execution},
+{label:"Creative Flags",value:c.creative},
+{label:"Both Flagged",value:c.both},
+{label:"Unique Flagged",value:c.unique},
+{label:"Clean",value:c.clean}
+];
+kpiEl.innerHTML=kpis.map(function(k){return '<div class="print-kpi"><span class="print-kpi-value">'+k.value+'</span><span class="print-kpi-label">'+escapeHtml(k.label)+'</span></div>';}).join("");
 }
+buildPrintTrendChart(idx);
 
 var chronicEl=document.getElementById("printChronicSection");
 if(chronicEl){
@@ -2027,26 +2115,34 @@ topPerfEl.innerHTML="<p>No data available.</p>";
 }
 
 var lbTable=document.getElementById("printLeaderboardTable");
+var lbNoteEl=document.getElementById("printLeaderboardNote");
 if(lbTable){
-var lbRows=rankedRecordsForWeek(idx).slice(0,10);
-var lbHtml="<tr><th>#</th><th>Client</th><th>Best Post</th><th>Max Views</th><th>PO</th><th>Pod</th></tr>";
+var lbRows=rankedRecordsForWeek(idx); // full ranked list, not just a top slice
+var lbHtml="<tr><th>#</th><th>Client</th><th>Δ</th><th>Best Post</th><th>Max Views</th><th>Trend</th><th>PO</th><th>Pod</th></tr>";
 lbRows.forEach(function(r,i){
-lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.title)+"</td><td>"+escapeHtml(r.bestPostTitle||"—")+"</td><td>"+numberWithCommas(r.maxPostViews)+"</td><td>"+escapeHtml(r.po||"Unassigned")+"</td><td>"+escapeHtml(r.pod||"—")+"</td></tr>";
+var moveHtml=leaderboardMovementBadge(idx,r,i);
+var spark=sparklineSvg(sparklineValuesForClient(clientBaseName(r.title),idx,6));
+lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.title)+"</td><td>"+moveHtml+"</td><td>"+escapeHtml(r.bestPostTitle||"—")+"</td><td>"+numberWithCommas(r.maxPostViews)+"</td><td>"+spark+"</td><td>"+escapeHtml(r.po||"Unassigned")+"</td><td>"+escapeHtml(r.pod||"—")+"</td></tr>";
 });
-if(!lbRows.length)lbHtml+="<tr><td colspan=\"6\">No ranked posts this week.</td></tr>";
+if(!lbRows.length)lbHtml+="<tr><td colspan=\"8\">No ranked posts this week.</td></tr>";
 lbTable.innerHTML=lbHtml;
+if(lbNoteEl){
+var excluded=idx>=0?excludedLeaderboardCount(idx):0;
+lbNoteEl.textContent=lbRows.length+" client"+(lbRows.length===1?"":"s")+" ranked this week"+(excluded>0?" — "+excluded+" more audited with no Max Post Views recorded, not shown.":".");
+}
 }
 }
 function populatePrintWeekMenu(){
 var menu=document.getElementById("printWeekMenu");
 if(!menu)return;
-menu.innerHTML="";
+menu.innerHTML='<div class="print-week-menu-label">Print report for…</div>';
 for(var i=weekLabels.length-1;i>=0;i--){
 (function(weekIdx){
+var isCurrent=weekIdx===weekLabels.length-1;
 var opt=document.createElement("div");
-opt.className="print-week-option";
+opt.className="print-week-option"+(isCurrent?" current":"");
 opt.setAttribute("role","option");
-opt.textContent=weekIdx===weekLabels.length-1?weekLabels[weekIdx]+" (current)":weekLabels[weekIdx];
+opt.textContent=isCurrent?weekLabels[weekIdx]+" (current)":weekLabels[weekIdx];
 opt.addEventListener("click",function(e){
 e.stopPropagation();
 closePrintWeekMenu();
