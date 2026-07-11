@@ -179,17 +179,29 @@ table view, so it should look native in whichever theme the page is in. */
 .leaderboard-filter-select:hover{border-color:#6366f1;}
 .leaderboard-filter-select:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);}
 .leaderboard-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;}
-.leaderboard-table{width:100%;min-width:720px;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+.leaderboard-table{width:100%;min-width:800px;border-collapse:collapse;font-size:13px;table-layout:fixed;}
 .leaderboard-table thead th{text-align:left;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:11px 14px;background:var(--card-alt);border-bottom:1px solid var(--border);white-space:nowrap;}
-.leaderboard-table thead th:nth-child(1){width:18%;}
-.leaderboard-table thead th:nth-child(2){width:7%;}
-.leaderboard-table thead th:nth-child(3){width:27%;}
-.leaderboard-table thead th:nth-child(4){width:14%;}
-.leaderboard-table thead th:nth-child(5){width:17%;}
-.leaderboard-table thead th:nth-child(6){width:17%;}
+.leaderboard-table thead th:nth-child(1){width:16%;}
+.leaderboard-table thead th:nth-child(2){width:6%;}
+.leaderboard-table thead th:nth-child(3){width:22%;}
+.leaderboard-table thead th:nth-child(4){width:12%;}
+.leaderboard-table thead th:nth-child(5){width:11%;}
+.leaderboard-table thead th:nth-child(6){width:16.5%;}
+.leaderboard-table thead th:nth-child(7){width:16.5%;}
 .leaderboard-table thead th.leaderboard-col-num{text-align:right;}
 .leaderboard-table thead th.leaderboard-col-move{text-align:center;}
+.leaderboard-table thead th.leaderboard-col-trend{text-align:center;}
 .leaderboard-table tbody td.leaderboard-col-move{text-align:center;}
+.leaderboard-table tbody td.leaderboard-col-trend{text-align:center;overflow:visible;}
+/* The client history modal reuses .leaderboard-table but only has 5 columns
+(Week/⚙️/🎨/Max views/Best post) — give it its own width split instead of
+inheriting the 7-column Leaderboard tab's proportions, which would leave
+"Best post" far too narrow. */
+.client-history-table thead th:nth-child(1){width:22%;}
+.client-history-table thead th:nth-child(2){width:9%;}
+.client-history-table thead th:nth-child(3){width:9%;}
+.client-history-table thead th:nth-child(4){width:18%;}
+.client-history-table thead th:nth-child(5){width:42%;}
 .leaderboard-move{display:inline-flex;align-items:center;justify-content:center;gap:2px;font-size:11.5px;font-weight:800;padding:3px 7px;border-radius:999px;white-space:nowrap;}
 .leaderboard-move.up{color:#15803d;background:#dcfce7;}
 .leaderboard-move.down{color:#991b1b;background:#fee2e2;}
@@ -342,6 +354,32 @@ body>*:not(.print-report){display:none!important;}
 .print-report .print-topperf-group-title{font-size:12.5px;font-weight:700;margin:0 0 4px;}
 .print-report .print-topperf-row{font-size:11.5px;padding:2px 0;}
 .print-report-footer{margin-top:24px;font-size:10.5px;color:#888;}
+.print-report .print-chronic-note{font-size:11.5px;color:#555;margin:0 0 6px;}
+.print-report .print-chronic-list{margin:0;padding-left:18px;font-size:11.5px;line-height:1.7;}
+/* Trigger + popover for picking which week the printable report targets —
+kept as a menu off the print icon itself rather than a persistent topbar
+control, so it doesn't crowd the other icon buttons. */
+.print-report-wrap{position:relative;}
+.print-week-menu{position:absolute;top:calc(100% + 10px);right:0;min-width:190px;max-height:280px;overflow-y:auto;background:var(--card-alt);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.28);padding:6px;display:none;z-index:60;}
+.print-week-menu.open{display:block;}
+.print-week-option{font-size:12.5px;font-weight:600;color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;}
+.print-week-option:hover{background:var(--tint-soft);}
+/* Global client search — jump straight to a client's history without
+scanning the Leaderboard or Chronic Flags list for their name. */
+.global-search-wrap{position:relative;display:flex;align-items:center;gap:7px;background:var(--card-alt);border:1px solid var(--border);border-radius:999px;padding:8px 14px;transition:border-color .15s ease,box-shadow .15s ease,background-color .4s ease;}
+.global-search-wrap:focus-within{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.18);}
+.global-search-icon{font-size:12px;opacity:.7;flex-shrink:0;}
+#globalClientSearch{border:none;background:none;outline:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);width:130px;}
+#globalClientSearch::placeholder{color:var(--muted);font-weight:500;}
+.global-search-menu{position:absolute;top:calc(100% + 8px);left:0;min-width:230px;max-width:300px;max-height:300px;overflow-y:auto;background:var(--card-alt);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.25);padding:6px;display:none;z-index:60;}
+.global-search-menu.open{display:block;}
+.global-search-option{font-size:12.5px;font-weight:600;color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;}
+.global-search-option:hover,.global-search-option.active{background:var(--tint-soft);}
+.global-search-empty{font-size:12px;color:var(--muted);padding:9px 12px;}
+/* Inline sparkline in the Leaderboard's Trend column — a quick "shape of the
+last few weeks" without opening the full client history modal. */
+.leaderboard-spark{display:flex;align-items:center;justify-content:center;}
+.leaderboard-spark-empty{color:var(--muted);}
 }
 
 /* Light-mode text-contrast fixes — a handful of pill/badge labels were
@@ -411,6 +449,11 @@ delay for an entrance rather than everything popping in at once. */
 <div class="logo-text">editoz<span>.club</span></div>
 </div>
 <div class="topbar-actions">
+<div class="global-search-wrap" id="globalSearchWrap">
+<span class="global-search-icon">🔍</span>
+<input type="text" id="globalClientSearch" placeholder="Jump to client…" autocomplete="off" />
+<div class="global-search-menu" id="globalSearchMenu"></div>
+</div>
 <span class="last-updated" id="lastUpdated"></span>
 <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Switch theme" aria-label="Switch between light and dark theme">
 <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
@@ -422,13 +465,16 @@ delay for an entrance rather than everything popping in at once. */
 <polyline points="21 3 21 9 15 9"></polyline>
 </svg>
 </button>
-<button type="button" class="refresh-btn" id="printReportBtn" title="Print weekly report" aria-label="Print weekly report">
+<div class="print-report-wrap" id="printReportWrap">
+<button type="button" class="refresh-btn" id="printReportBtn" title="Print weekly report" aria-label="Print weekly report" aria-haspopup="listbox" aria-expanded="false">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
 <polyline points="6 9 6 2 18 2 18 9"></polyline>
 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
 <rect x="6" y="14" width="12" height="8"></rect>
 </svg>
 </button>
+<div class="print-week-menu" id="printWeekMenu" role="listbox"></div>
+</div>
 </div>
 </div>
 <div class="page">
@@ -572,6 +618,7 @@ delay for an entrance rather than everything popping in at once. */
 <th class="leaderboard-col-move">Δ</th>
 <th>Best post title</th>
 <th class="leaderboard-col-num">Max post views</th>
+<th class="leaderboard-col-trend">Trend</th>
 <th>Product owner</th>
 <th>Pod</th>
 </tr>
@@ -611,7 +658,7 @@ delay for an entrance rather than everything popping in at once. */
 <div class="client-history-chart-wrap">
 <canvas id="clientHistoryChart"></canvas>
 </div>
-<table class="leaderboard-table">
+<table class="leaderboard-table client-history-table">
 <thead>
 <tr>
 <th>Week</th>
@@ -634,6 +681,8 @@ delay for an entrance rather than everything popping in at once. */
 </div>
 <h2>Weekly Summary</h2>
 <table id="printSummaryTable"></table>
+<h2>Clients to Watch</h2>
+<div id="printChronicSection"></div>
 <h2>Top Performers</h2>
 <div id="printTopPerformers"></div>
 <h2>Leaderboard (Top 10 by Max Post Views)</h2>
@@ -876,8 +925,8 @@ el.textContent="Updated "+now.toLocaleTimeString([],{hour:"numeric",minute:"2-di
 // Same breakdown Zayaan sends Sayuni by hand each week — computed from the
 // most recently completed audit week so it's always ready to glance at
 // and copy, no manual recounting required.
-function summaryCounts(){
-var idx=weekLabels.length-1;
+function summaryCounts(forIdx){
+var idx=(forIdx===undefined||forIdx===null)?weekLabels.length-1:forIdx;
 var records=idx>=0?(recordsByWeek[idx]||[]):[];
 var total=records.length;
 var creative=records.filter(function(r){return r.creativeFlag;}).length;
@@ -904,8 +953,8 @@ document.getElementById("summaryClean").textContent=c.clean;
 // week AND the week(s) directly before it, matched by base name since the
 // exact title changes weekly. Walks backward until the streak breaks, so a
 // client flagged 3 weeks running shows "3", not just "yes/no".
-function computeChronicFlags(){
-var idx=weekLabels.length-1;
+function computeChronicFlags(idx){
+if(idx===undefined||idx===null)idx=weekLabels.length-1;
 if(idx<=0)return [];
 var currentRecords=recordsByWeek[idx]||[];
 var flaggedNow=currentRecords.filter(function(r){return r.executionFlag||r.creativeFlag;});
@@ -1350,6 +1399,44 @@ if(delta>0)return '<span class="leaderboard-move up">▲'+delta+'</span>';
 if(delta<0)return '<span class="leaderboard-move down">▼'+Math.abs(delta)+'</span>';
 return '<span class="leaderboard-move flat">–</span>';
 }
+// Trend sparkline — this client's Max Post Views for however many of the
+// weeks up to and including uptoWeekIdx they were actually audited in
+// (skips weeks with no match or no numeric views rather than showing a gap),
+// capped to the last maxPoints so one long-running client doesn't render an
+// unreadably dense line.
+function sparklineValuesForClient(baseName,uptoWeekIdx,maxPoints){
+var values=[];
+for(var w=0;w<=uptoWeekIdx;w++){
+var records=recordsByWeek[w]||[];
+for(var i=0;i<records.length;i++){
+if(clientBaseName(records[i].title)===baseName&&typeof records[i].maxPostViews==="number"){
+values.push(records[i].maxPostViews);
+break;
+}
+}
+}
+if(values.length>maxPoints)values=values.slice(values.length-maxPoints);
+return values;
+}
+function sparklineSvg(values){
+if(!values||values.length<2)return '<span class="leaderboard-spark-empty">—</span>';
+var w=64,h=22,pad=3;
+var min=Math.min.apply(null,values),max=Math.max.apply(null,values);
+var range=max-min||1;
+var stepX=(w-pad*2)/(values.length-1);
+var pts=values.map(function(v,i){
+var x=pad+i*stepX;
+var y=h-pad-((v-min)/range)*(h-pad*2);
+return x.toFixed(1)+","+y.toFixed(1);
+});
+var up=values[values.length-1]>=values[0];
+var color=up?"#15803d":"#991b1b";
+var lastPt=pts[pts.length-1].split(",");
+return '<svg class="leaderboard-spark-svg" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" aria-hidden="true">'+
+'<polyline points="'+pts.join(" ")+'" fill="none" stroke="'+color+'" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'+
+'<circle cx="'+lastPt[0]+'" cy="'+lastPt[1]+'" r="2.2" fill="'+color+'"/>'+
+'</svg>';
+}
 function populateLeaderboard(){
 var idx=currentLeaderboardWeekIndex();
 var labelEl=document.getElementById("leaderboardWeekLabel");
@@ -1370,7 +1457,7 @@ gapNoteEl.style.display="none";
 }
 }
 if(!rows.length){
-body.innerHTML='<tr><td colspan="6" class="leaderboard-empty">No ranked posts for this week yet.</td></tr>';
+body.innerHTML='<tr><td colspan="7" class="leaderboard-empty">No ranked posts for this week yet.</td></tr>';
 return;
 }
 body.innerHTML=rows.map(function(r){
@@ -1389,11 +1476,13 @@ bestHtml='<span class="leaderboard-dim">—</span>';
 }
 var rankIndex=rankedForMovement.indexOf(r);
 var moveHtml=rankIndex===-1?'<span class="leaderboard-move flat">–</span>':leaderboardMovementBadge(idx,r,rankIndex);
+var sparkValues=sparklineValuesForClient(clientBaseName(r.title),idx,6);
 return '<tr>'+
 '<td class="leaderboard-client"><button type="button" class="leaderboard-client-btn" data-client="'+escapeAttr(clientBaseName(r.title))+'">'+escapeHtml(r.title)+'</button></td>'+
 '<td class="leaderboard-col-move">'+moveHtml+'</td>'+
 '<td>'+bestHtml+'</td>'+
 '<td class="leaderboard-views">'+numberWithCommas(r.maxPostViews)+'</td>'+
+'<td class="leaderboard-col-trend"><span class="leaderboard-spark" title="Last '+sparkValues.length+' audited weeks">'+sparklineSvg(sparkValues)+'</span></td>'+
 '<td><span class="leaderboard-pill'+(poGap?" leaderboard-pill-gap":"")+'" style="'+(poGap?"":"background:"+poColor.bg+";color:"+poColor.text)+'">'+(poGap?"⚠️ Unassigned":escapeHtml(r.po))+'</span></td>'+
 '<td><span class="leaderboard-pill'+(podGap?" leaderboard-pill-gap":"")+'" style="'+(podGap?"":"background:"+podColor.bg+";color:"+podColor.text)+'">'+(podGap?"⚠️ Missing":escapeHtml(r.pod))+'</span></td>'+
 '</tr>';
@@ -1545,6 +1634,87 @@ if(btn)openClientHistory(btn.getAttribute("data-client"));
 });
 document.getElementById("clientHistoryClose").addEventListener("click",closeClientHistory);
 document.getElementById("clientHistoryBackdrop").addEventListener("click",function(e){if(e.target===e.currentTarget)closeClientHistory();});
+
+// ---- Global client search — every client base name seen across every week
+// on record, searchable from the topbar so a name from Chronic Flags or an
+// old week doesn't require scanning tables to find. Reuses the same client
+// history modal every other client click already opens.
+function allKnownClientNames(){
+var seen={};
+var out=[];
+for(var i=0;i<recordsByWeek.length;i++){
+var records=recordsByWeek[i]||[];
+for(var j=0;j<records.length;j++){
+var base=clientBaseName(records[j].title);
+if(base&&!seen[base]){seen[base]=true;out.push(base);}
+}
+}
+out.sort(function(a,b){return a.localeCompare(b);});
+return out;
+}
+var globalSearchActiveIndex=-1;
+function renderGlobalSearchMenu(query){
+var menu=document.getElementById("globalSearchMenu");
+if(!menu)return;
+var q=(query||"").trim().toLowerCase();
+globalSearchActiveIndex=-1;
+if(!q){menu.classList.remove("open");menu.innerHTML="";return;}
+var matches=allKnownClientNames().filter(function(n){return n.toLowerCase().indexOf(q)!==-1;});
+if(!matches.length){
+menu.innerHTML='<div class="global-search-empty">No matching clients</div>';
+}else{
+menu.innerHTML=matches.slice(0,25).map(function(n){
+return '<div class="global-search-option" data-client="'+escapeAttr(n)+'">'+escapeHtml(n)+'</div>';
+}).join("");
+}
+menu.classList.add("open");
+}
+function closeGlobalSearchMenu(){
+var menu=document.getElementById("globalSearchMenu");
+if(menu)menu.classList.remove("open");
+globalSearchActiveIndex=-1;
+}
+function updateGlobalSearchActive(opts){
+opts.forEach(function(o,i){o.classList.toggle("active",i===globalSearchActiveIndex);});
+}
+function jumpToClient(baseName){
+closeGlobalSearchMenu();
+var input=document.getElementById("globalClientSearch");
+if(input){input.value="";input.blur();}
+openClientHistory(baseName);
+}
+document.getElementById("globalClientSearch").addEventListener("input",function(){renderGlobalSearchMenu(this.value);});
+document.getElementById("globalClientSearch").addEventListener("focus",function(){if(this.value.trim())renderGlobalSearchMenu(this.value);});
+document.getElementById("globalClientSearch").addEventListener("keydown",function(e){
+var menu=document.getElementById("globalSearchMenu");
+var opts=menu?menu.querySelectorAll(".global-search-option"):[];
+if(e.key==="ArrowDown"){
+e.preventDefault();
+if(!opts.length)return;
+globalSearchActiveIndex=Math.min(globalSearchActiveIndex+1,opts.length-1);
+updateGlobalSearchActive(opts);
+}else if(e.key==="ArrowUp"){
+e.preventDefault();
+if(!opts.length)return;
+globalSearchActiveIndex=Math.max(globalSearchActiveIndex-1,0);
+updateGlobalSearchActive(opts);
+}else if(e.key==="Enter"){
+e.preventDefault();
+var target=opts[globalSearchActiveIndex>=0?globalSearchActiveIndex:0];
+if(target&&target.getAttribute("data-client"))jumpToClient(target.getAttribute("data-client"));
+}else if(e.key==="Escape"){
+closeGlobalSearchMenu();
+this.blur();
+}
+});
+document.getElementById("globalSearchMenu").addEventListener("click",function(e){
+var opt=e.target.closest(".global-search-option");
+if(opt&&opt.getAttribute("data-client"))jumpToClient(opt.getAttribute("data-client"));
+});
+document.addEventListener("click",function(e){
+var wrap=document.getElementById("globalSearchWrap");
+if(wrap&&!wrap.contains(e.target))closeGlobalSearchMenu();
+});
 
 function buildTopPerformersSlackText(){
 var data=buildTopPerformersData();
@@ -1812,25 +1982,36 @@ var minSpin=new Promise(function(resolve){setTimeout(resolve,600);});
 Promise.all([loadData(),minSpin]).then(function(){btn.classList.remove("spinning");});
 });
 
-// ---- Printable weekly report — always built from the latest/current week
-// regardless of whatever week happens to be selected elsewhere on the page,
-// so it's predictable: "print report" always means "this week's snapshot."
-function buildPrintReport(){
-var idx=weekLabels.length-1;
+// ---- Printable weekly report — targets whichever week is picked from the
+// print button's week menu (defaults to the latest/current week), so you can
+// print last week's snapshot too instead of always the newest one.
+function buildPrintReport(targetIdx){
+var idx=(targetIdx===undefined||targetIdx===null)?weekLabels.length-1:targetIdx;
 var weekEl=document.getElementById("printReportWeek");
 if(weekEl)weekEl.textContent=idx>=0?weekLabels[idx]+" — generated "+new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}):"No data available";
 
-var c=summaryCounts();
+var c=summaryCounts(idx);
 var summaryTable=document.getElementById("printSummaryTable");
 if(summaryTable){
 summaryTable.innerHTML="<tr><th>Total Audited</th><th>Creative Flags</th><th>Execution Flags</th><th>Both Flagged</th><th>Unique Flagged</th><th>Clean</th></tr>"+
 "<tr><td>"+c.total+"</td><td>"+c.creative+"</td><td>"+c.execution+"</td><td>"+c.both+"</td><td>"+c.unique+"</td><td>"+c.clean+"</td></tr>";
 }
 
+var chronicEl=document.getElementById("printChronicSection");
+if(chronicEl){
+var chronic=computeChronicFlags(idx);
+if(chronic.length){
+chronicEl.innerHTML='<p class="print-chronic-note">Flagged 2+ weeks running as of '+escapeHtml(weekLabels[idx]||"this week")+' — worth a closer look:</p>'+
+'<ul class="print-chronic-list">'+chronic.map(function(r){return '<li>'+escapeHtml(r.baseName)+' — '+r.streak+' weeks</li>';}).join("")+'</ul>';
+}else{
+chronicEl.innerHTML="<p>No clients currently flagged 2+ weeks in a row.</p>";
+}
+}
+
 var topPerfEl=document.getElementById("printTopPerformers");
 if(topPerfEl){
 var savedTopPerfIdx=selectedTopPerfWeekIndex;
-selectedTopPerfWeekIndex=null; // force "current week" for the report
+selectedTopPerfWeekIndex=idx; // force the report's target week
 var tpData=buildTopPerformersData();
 selectedTopPerfWeekIndex=savedTopPerfIdx;
 if(tpData){
@@ -1847,10 +2028,7 @@ topPerfEl.innerHTML="<p>No data available.</p>";
 
 var lbTable=document.getElementById("printLeaderboardTable");
 if(lbTable){
-var savedLbIdx=selectedLeaderboardWeekIndex;
-selectedLeaderboardWeekIndex=null; // force "current week" for the report
 var lbRows=rankedRecordsForWeek(idx).slice(0,10);
-selectedLeaderboardWeekIndex=savedLbIdx;
 var lbHtml="<tr><th>#</th><th>Client</th><th>Best Post</th><th>Max Views</th><th>PO</th><th>Pod</th></tr>";
 lbRows.forEach(function(r,i){
 lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.title)+"</td><td>"+escapeHtml(r.bestPostTitle||"—")+"</td><td>"+numberWithCommas(r.maxPostViews)+"</td><td>"+escapeHtml(r.po||"Unassigned")+"</td><td>"+escapeHtml(r.pod||"—")+"</td></tr>";
@@ -1859,9 +2037,43 @@ if(!lbRows.length)lbHtml+="<tr><td colspan=\"6\">No ranked posts this week.</td>
 lbTable.innerHTML=lbHtml;
 }
 }
-document.getElementById("printReportBtn").addEventListener("click",function(){
-buildPrintReport();
+function populatePrintWeekMenu(){
+var menu=document.getElementById("printWeekMenu");
+if(!menu)return;
+menu.innerHTML="";
+for(var i=weekLabels.length-1;i>=0;i--){
+(function(weekIdx){
+var opt=document.createElement("div");
+opt.className="print-week-option";
+opt.setAttribute("role","option");
+opt.textContent=weekIdx===weekLabels.length-1?weekLabels[weekIdx]+" (current)":weekLabels[weekIdx];
+opt.addEventListener("click",function(e){
+e.stopPropagation();
+closePrintWeekMenu();
+buildPrintReport(weekIdx);
 window.print();
+});
+menu.appendChild(opt);
+})(i);
+}
+}
+function openPrintWeekMenu(){
+populatePrintWeekMenu();
+document.getElementById("printWeekMenu").classList.add("open");
+document.getElementById("printReportBtn").setAttribute("aria-expanded","true");
+}
+function closePrintWeekMenu(){
+document.getElementById("printWeekMenu").classList.remove("open");
+document.getElementById("printReportBtn").setAttribute("aria-expanded","false");
+}
+document.getElementById("printReportBtn").addEventListener("click",function(e){
+e.stopPropagation();
+var menu=document.getElementById("printWeekMenu");
+if(menu.classList.contains("open"))closePrintWeekMenu();else openPrintWeekMenu();
+});
+document.addEventListener("click",function(e){
+var wrap=document.getElementById("printReportWrap");
+if(wrap&&!wrap.contains(e.target))closePrintWeekMenu();
 });
 document.getElementById("themeToggleBtn").addEventListener("click",function(){
 var current=document.documentElement.getAttribute("data-theme");
