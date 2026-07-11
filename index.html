@@ -417,16 +417,19 @@ vertical space. */
 /* Pod breakdown — the section that used to leave the bottom of the page
 empty; a genuinely new cut of the data (team workload by pod) rather than
 just stretched-out spacing, so the page fills with substance, not padding.
-Rendered as a row of compact chips rather than a full <table> (header row +
-data rows) — same information, a fraction of the height, which is also what
-buys back the room a table version pushed onto a second page. */
+Each pod is a small two-row card (name+badge on top, stats below) rather than
+a single-line flex row — the single-line version let a long pod name and its
+stats text run together with the next chip's dot the moment several pods
+had to share the row, since everything was nowrap on one line with no fixed
+card boundary to stop it visually merging into its neighbor. */
 .print-pod-section{margin-bottom:4px;}
-.print-pod-grid{display:flex;flex-wrap:wrap;gap:8px;}
-.print-pod-chip{flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
-.print-pod-chip-name{font-size:10.5px;font-weight:800;color:#111;display:flex;align-items:center;gap:6px;white-space:nowrap;}
-.print-pod-chip-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
-.print-pod-chip-stats{font-size:9.5px;color:#555;white-space:nowrap;}
-.print-pod-rate{font-weight:800;padding:2px 8px;border-radius:999px;font-size:9.5px;margin-left:6px;}
+.print-pod-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;}
+.print-pod-chip{border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;background:#fafafa;min-width:0;}
+.print-pod-chip-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;}
+.print-pod-chip-name{font-size:10px;font-weight:800;color:#111;display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.print-pod-chip-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.print-pod-chip-stats{font-size:9px;color:#666;white-space:nowrap;}
+.print-pod-rate{font-weight:800;padding:2px 7px;border-radius:999px;font-size:9px;flex-shrink:0;white-space:nowrap;}
 .print-pod-rate.low{color:#15803d;background:#dcfce7;}
 .print-pod-rate.mid{color:#92400e;background:#fef3c7;}
 .print-pod-rate.high{color:#991b1b;background:#fee2e2;}
@@ -2282,8 +2285,11 @@ var rate=p.total?Math.round((p.flagged/p.total)*100):0;
 var tier=rate>=60?"high":rate>=30?"mid":"low";
 var dotColor=leaderboardPillColor(p.pod).text;
 return '<div class="print-pod-chip">'+
+'<div class="print-pod-chip-top">'+
 '<span class="print-pod-chip-name"><span class="print-pod-chip-dot" style="background:'+dotColor+'"></span>'+escapeHtml(p.pod)+'</span>'+
-'<span class="print-pod-chip-stats">'+p.total+' audited · '+p.flagged+' flagged<span class="print-pod-rate '+tier+'">'+rate+'%</span></span>'+
+'<span class="print-pod-rate '+tier+'">'+rate+'%</span>'+
+'</div>'+
+'<div class="print-pod-chip-stats">'+p.total+' audited · '+p.flagged+' flagged</div>'+
 '</div>';
 }).join("");
 }else{
