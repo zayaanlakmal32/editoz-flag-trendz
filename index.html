@@ -31,7 +31,7 @@ value) in both themes rather than turning invisible on a light background. */
 *{box-sizing:border-box;}
 html{transition:background-color .4s ease;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;color:var(--ink);-webkit-font-smoothing:antialiased;background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.028) 1px,transparent 0),radial-gradient(950px 460px at 50% -12%,rgba(99,102,241,.20),transparent 60%),radial-gradient(780px 400px at 108% -2%,rgba(236,72,153,.13),transparent 55%),radial-gradient(680px 360px at -6% 38%,rgba(20,184,166,.12),transparent 55%),linear-gradient(180deg,#0b0c10 0%,#101218 100%);background-size:22px 22px,auto,auto,auto,auto;background-attachment:fixed;min-height:100vh;transition:background-color .4s ease,color .4s ease;}
-[data-theme="light"] body{background-image:radial-gradient(circle at 1px 1px,rgba(15,23,42,.03) 1px,transparent 0),radial-gradient(950px 460px at 50% -12%,rgba(99,102,241,.10),transparent 60%),radial-gradient(780px 400px at 108% -2%,rgba(236,72,153,.08),transparent 55%),radial-gradient(680px 360px at -6% 38%,rgba(20,184,166,.09),transparent 55%),linear-gradient(180deg,#eef1f7 0%,#e6eaf3 100%);}
+[data-theme="light"] body{background-image:radial-gradient(circle at 1px 1px,rgba(15,23,42,.035) 1px,transparent 0),radial-gradient(950px 480px at 50% -12%,rgba(99,102,241,.22),transparent 60%),radial-gradient(780px 420px at 106% 8%,rgba(236,72,153,.17),transparent 58%),radial-gradient(720px 400px at -8% 42%,rgba(20,184,166,.17),transparent 58%),radial-gradient(650px 520px at 50% 115%,rgba(251,191,36,.12),transparent 62%),linear-gradient(160deg,#eef0fb 0%,#f3edf7 45%,#fdf1f3 100%);}
 .topbar{background:var(--topbar-bg);backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;transition:background-color .4s ease,border-color .4s ease;}
 .topbar-actions{display:flex;align-items:center;gap:12px;}
 .last-updated{font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap;}
@@ -58,6 +58,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .page{max-width:980px;margin:0 auto;padding:40px 24px 64px;}
 .page-header{margin-bottom:28px;}
 .page-header h1{font-size:28px;font-weight:800;margin:0 0 6px;letter-spacing:-0.02em;background:linear-gradient(120deg,#f4f5f7 0%,#a5b4fc 55%,#f9a8d4 115%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+/* The dark-theme gradient above is pale on purpose (light text on a near-
+black page) — on the light theme that same gradient is nearly invisible,
+so it needs its own darker stops rather than sharing the dark version. */
+[data-theme="light"] .page-header h1{background:linear-gradient(120deg,#1e2333 0%,#4f46e5 55%,#db2777 115%);-webkit-background-clip:text;background-clip:text;}
 .page-header p{margin:0;color:var(--muted);font-size:14.5px;}
 #status{color:#fca5a5;background:rgba(185,28,28,.14);border:1px solid rgba(248,113,113,.3);padding:12px 16px;border-radius:10px;font-size:13.5px;margin-bottom:20px;display:none;}
 #status.visible{display:block;}
@@ -246,7 +250,7 @@ since the tinted rgba washes still read fine over a light surface. */
 /* Welcome / splash screen — shown for a minimum time on first load so it
 never flashes, then fades and lifts out smoothly once data has arrived. */
 .splash-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.028) 1px,transparent 0),radial-gradient(950px 460px at 50% -12%,rgba(99,102,241,.20),transparent 60%),radial-gradient(780px 400px at 108% -2%,rgba(236,72,153,.13),transparent 55%),radial-gradient(680px 360px at -6% 38%,rgba(20,184,166,.12),transparent 55%),linear-gradient(180deg,#0b0c10 0%,#101218 100%);transition:opacity .6s ease,visibility .6s ease;}
-[data-theme="light"] .splash-screen{background-image:radial-gradient(circle at 1px 1px,rgba(15,23,42,.03) 1px,transparent 0),radial-gradient(950px 460px at 50% -12%,rgba(99,102,241,.10),transparent 60%),radial-gradient(780px 400px at 108% -2%,rgba(236,72,153,.08),transparent 55%),radial-gradient(680px 360px at -6% 38%,rgba(20,184,166,.09),transparent 55%),linear-gradient(180deg,#eef1f7 0%,#e6eaf3 100%);}
+[data-theme="light"] .splash-screen{background-image:radial-gradient(circle at 1px 1px,rgba(15,23,42,.035) 1px,transparent 0),radial-gradient(950px 480px at 50% -12%,rgba(99,102,241,.22),transparent 60%),radial-gradient(780px 420px at 106% 8%,rgba(236,72,153,.17),transparent 58%),radial-gradient(720px 400px at -8% 42%,rgba(20,184,166,.17),transparent 58%),radial-gradient(650px 520px at 50% 115%,rgba(251,191,36,.12),transparent 62%),linear-gradient(160deg,#eef0fb 0%,#f3edf7 45%,#fdf1f3 100%);}
 .splash-screen.splash-hidden{opacity:0;visibility:hidden;pointer-events:none;}
 .splash-inner{display:flex;flex-direction:column;align-items:center;gap:12px;animation:splashRise .7s cubic-bezier(.22,1,.36,1);}
 @keyframes splashRise{from{opacity:0;transform:translateY(14px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
