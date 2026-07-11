@@ -142,19 +142,30 @@ table view, so it should look native in whichever theme the page is in. */
 .leaderboard-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .leaderboard-head h2{font-size:15.5px;font-weight:700;margin:0;color:var(--ink);}
 .leaderboard-week{font-size:11.5px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.03em;}
-.leaderboard-subtitle{margin:6px 0 18px;font-size:12.5px;color:var(--muted);}
+.leaderboard-subtitle{margin:6px 0 16px;font-size:12.5px;color:var(--muted);}
+.leaderboard-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.leaderboard-sort-toggle{font-size:12.5px;font-weight:700;font-family:inherit;color:var(--ink);background:var(--card-alt);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s,background-color .3s ease,color .3s ease;white-space:nowrap;}
+.leaderboard-sort-toggle:hover{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);}
 .leaderboard-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;}
-.leaderboard-table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
-.leaderboard-table thead th{text-align:left;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:11px 14px;background:var(--card-alt);border-bottom:1px solid var(--border);position:sticky;top:0;}
-.leaderboard-table tbody td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--ink);}
+.leaderboard-table{width:100%;min-width:720px;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+.leaderboard-table thead th{text-align:left;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:11px 14px;background:var(--card-alt);border-bottom:1px solid var(--border);white-space:nowrap;}
+.leaderboard-table thead th:nth-child(1){width:20%;}
+.leaderboard-table thead th:nth-child(2){width:32%;}
+.leaderboard-table thead th:nth-child(3){width:16%;}
+.leaderboard-table thead th:nth-child(4){width:16%;}
+.leaderboard-table thead th:nth-child(5){width:16%;}
+.leaderboard-table thead th.leaderboard-col-num{text-align:right;}
+.leaderboard-table tbody td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
 .leaderboard-table tbody tr:last-child td{border-bottom:none;}
 .leaderboard-table tbody tr:hover td{background:var(--tint-soft);}
 .leaderboard-client{font-weight:700;}
-.leaderboard-best{color:var(--text-dim);font-weight:500;max-width:320px;overflow:hidden;text-overflow:ellipsis;}
-.leaderboard-views{font-weight:700;color:var(--ink);}
+.leaderboard-best{display:flex;align-items:center;gap:8px;min-width:0;}
+.leaderboard-best-link{color:var(--text-dim);font-weight:500;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.leaderboard-best-link:hover{color:var(--accent-text);text-decoration:underline;}
+.leaderboard-views{font-weight:700;color:var(--ink);text-align:right;}
 .leaderboard-dim{color:var(--muted);}
-.leaderboard-pill{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;}
-.leaderboard-empty{padding:20px 14px !important;text-align:center;color:var(--muted);font-weight:500 !important;}
+.leaderboard-pill{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+.leaderboard-empty{padding:20px 14px !important;text-align:center;color:var(--muted);font-weight:500 !important;white-space:normal !important;}
 .older-weeks{display:flex;align-items:flex-start;gap:12px;margin-bottom:24px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease,background-color .4s ease,border-color .4s ease;}
 .older-weeks label{padding-top:6px;}
 .older-weeks:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 36px rgba(0,0,0,.45);}
@@ -445,13 +456,25 @@ delay for an entrance rather than everything popping in at once. */
 <span class="leaderboard-week" id="leaderboardWeekLabel">–</span>
 </div>
 <p class="leaderboard-subtitle">Every client audited this week, ranked by max post views — mirrors the old Notion performance table.</p>
+<div class="leaderboard-toolbar">
+<div class="custom-select" id="leaderboardWeekDropdown">
+<button type="button" class="custom-select-trigger" id="leaderboardWeekTrigger" aria-haspopup="listbox" aria-expanded="false">
+<span id="leaderboardWeekTriggerText">Select a week…</span>
+<span class="custom-select-arrow"></span>
+</button>
+<div class="custom-select-menu" id="leaderboardWeekMenu" role="listbox"></div>
+</div>
+<button type="button" class="leaderboard-sort-toggle" id="leaderboardSortToggle">
+<span id="leaderboardSortToggleText">↓ Best first</span>
+</button>
+</div>
 <div class="leaderboard-table-wrap">
 <table class="leaderboard-table">
 <thead>
 <tr>
 <th>Client</th>
 <th>Best post title</th>
-<th>Max post views</th>
+<th class="leaderboard-col-num">Max post views</th>
 <th>Product owner</th>
 <th>Pod</th>
 </tr>
@@ -950,20 +973,81 @@ function leaderboardPillColor(name){
 if(!name)return LEADERBOARD_PILL_PALETTE[LEADERBOARD_PILL_PALETTE.length-1];
 return LEADERBOARD_PILL_PALETTE[hashStr(name)%LEADERBOARD_PILL_PALETTE.length];
 }
-function buildLeaderboardRows(){
-var idx=weekLabels.length-1;
-if(idx<0)return [];
-var records=recordsByWeek[idx]||[];
-return records
-.filter(function(r){return typeof r.maxPostViews==="number";})
-.slice()
-.sort(function(a,b){return b.maxPostViews-a.maxPostViews;});
+// null = "current week" (the default, same convention as the rest of the
+// dashboard); otherwise an explicit week index picked from the dropdown.
+var selectedLeaderboardWeekIndex=null;
+var leaderboardSortDesc=true;
+
+// The "Best Post Title"/"Max Post Views" formulas only give text/a number —
+// they don't carry a link or platform on their own. Matching the number
+// back against this record's own posts[] (already fetched with link+views
+// per post) recovers which actual post that is, so the title can become a
+// real link with the right platform logo instead of plain text.
+function bestPostForRecord(r){
+if(!r.posts||!r.posts.length)return null;
+if(typeof r.maxPostViews==="number"){
+var byViews=r.posts.find(function(p){return p.views===r.maxPostViews;});
+if(byViews)return byViews;
+}
+if(r.bestPostTitle){
+var byTitle=r.posts.find(function(p){return p.title===r.bestPostTitle;});
+if(byTitle)return byTitle;
+}
+return null;
+}
+function buildLeaderboardRows(weekIdx){
+if(weekIdx<0||weekIdx==null)return [];
+var records=recordsByWeek[weekIdx]||[];
+var rows=records.filter(function(r){return typeof r.maxPostViews==="number";}).slice();
+rows.sort(function(a,b){return leaderboardSortDesc?b.maxPostViews-a.maxPostViews:a.maxPostViews-b.maxPostViews;});
+return rows;
+}
+function currentLeaderboardWeekIndex(){
+return selectedLeaderboardWeekIndex!==null?selectedLeaderboardWeekIndex:weekLabels.length-1;
+}
+function populateLeaderboardWeekMenu(){
+var menu=document.getElementById("leaderboardWeekMenu");
+var triggerText=document.getElementById("leaderboardWeekTriggerText");
+if(!menu)return;
+menu.innerHTML="";
+for(var i=weekLabels.length-1;i>=0;i--){
+(function(weekIdx){
+var opt=document.createElement("div");
+opt.className="custom-select-option";
+opt.setAttribute("role","option");
+opt.setAttribute("data-index",String(weekIdx));
+var label=weekIdx===weekLabels.length-1?weekLabels[weekIdx]+" (current)":weekLabels[weekIdx];
+opt.innerHTML='<span>'+escapeHtml(label)+'</span><span class="check">✓</span>';
+opt.addEventListener("click",function(){selectLeaderboardWeek(weekIdx);});
+menu.appendChild(opt);
+})(i);
+}
+var activeIdx=currentLeaderboardWeekIndex();
+if(triggerText)triggerText.textContent=activeIdx>=0?(activeIdx===weekLabels.length-1?weekLabels[activeIdx]+" (current)":weekLabels[activeIdx]):"Select a week…";
+var opts=menu.querySelectorAll(".custom-select-option");
+opts.forEach(function(o){o.classList.toggle("selected",o.getAttribute("data-index")===String(activeIdx));});
+}
+function selectLeaderboardWeek(weekIdx){
+selectedLeaderboardWeekIndex=weekIdx;
+closeLeaderboardWeekMenu();
+populateLeaderboardWeekMenu();
+populateLeaderboard();
+}
+function openLeaderboardWeekMenu(){
+document.getElementById("leaderboardWeekMenu").classList.add("open");
+document.getElementById("leaderboardWeekTrigger").classList.add("open");
+document.getElementById("leaderboardWeekTrigger").setAttribute("aria-expanded","true");
+}
+function closeLeaderboardWeekMenu(){
+document.getElementById("leaderboardWeekMenu").classList.remove("open");
+document.getElementById("leaderboardWeekTrigger").classList.remove("open");
+document.getElementById("leaderboardWeekTrigger").setAttribute("aria-expanded","false");
 }
 function populateLeaderboard(){
-var idx=weekLabels.length-1;
+var idx=currentLeaderboardWeekIndex();
 var labelEl=document.getElementById("leaderboardWeekLabel");
 if(labelEl)labelEl.textContent=idx>=0?weekLabels[idx]:"–";
-var rows=buildLeaderboardRows();
+var rows=buildLeaderboardRows(idx);
 var body=document.getElementById("leaderboardBody");
 if(!body)return;
 if(!rows.length){
@@ -973,15 +1057,38 @@ return;
 body.innerHTML=rows.map(function(r){
 var poColor=leaderboardPillColor(r.po);
 var podColor=leaderboardPillColor(r.pod);
+var bestPost=bestPostForRecord(r);
+var bestHtml;
+if(r.bestPostTitle&&bestPost&&bestPost.link){
+bestHtml='<div class="leaderboard-best">'+platformIconHtml(bestPost)+'<a class="leaderboard-best-link" href="'+escapeAttr(bestPost.link)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(stripPlatformSuffix(r.bestPostTitle))+'</a></div>';
+}else if(r.bestPostTitle){
+bestHtml='<div class="leaderboard-best"><span class="leaderboard-best-link">'+escapeHtml(stripPlatformSuffix(r.bestPostTitle))+'</span></div>';
+}else{
+bestHtml='<span class="leaderboard-dim">—</span>';
+}
 return '<tr>'+
 '<td class="leaderboard-client">'+escapeHtml(r.title)+'</td>'+
-'<td class="leaderboard-best">'+(r.bestPostTitle?escapeHtml(r.bestPostTitle):'<span class="leaderboard-dim">—</span>')+'</td>'+
+'<td>'+bestHtml+'</td>'+
 '<td class="leaderboard-views">'+numberWithCommas(r.maxPostViews)+'</td>'+
 '<td><span class="leaderboard-pill" style="background:'+poColor.bg+';color:'+poColor.text+'">'+escapeHtml(r.po||"Unassigned")+'</span></td>'+
 '<td><span class="leaderboard-pill" style="background:'+podColor.bg+';color:'+podColor.text+'">'+escapeHtml(r.pod||"—")+'</span></td>'+
 '</tr>';
 }).join("");
 }
+document.getElementById("leaderboardWeekTrigger").addEventListener("click",function(e){
+e.stopPropagation();
+var menu=document.getElementById("leaderboardWeekMenu");
+if(menu.classList.contains("open"))closeLeaderboardWeekMenu();else openLeaderboardWeekMenu();
+});
+document.addEventListener("click",function(e){
+var dropdown=document.getElementById("leaderboardWeekDropdown");
+if(dropdown&&!dropdown.contains(e.target))closeLeaderboardWeekMenu();
+});
+document.getElementById("leaderboardSortToggle").addEventListener("click",function(){
+leaderboardSortDesc=!leaderboardSortDesc;
+document.getElementById("leaderboardSortToggleText").textContent=leaderboardSortDesc?"↓ Best first":"↑ Worst first";
+populateLeaderboard();
+});
 
 function buildTopPerformersSlackText(){
 var data=buildTopPerformersData();
@@ -1028,6 +1135,7 @@ apiData=data;
 updateLastUpdated();
 populateSummaryCard();
 populateTopPerformers();
+populateLeaderboardWeekMenu();
 populateLeaderboard();
 
 // The all-time totals, used for the stat cards whenever no comparison
