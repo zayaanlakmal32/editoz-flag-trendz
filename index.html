@@ -133,7 +133,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="stat stat-execution"><div class="stat-icon">⚙️</div><div class="stat-text"><span class="stat-value" id="statExecution">–</span><span class="stat-label">Execution Flags</span></div></div>
 <div class="stat stat-creative"><div class="stat-icon">🎨</div><div class="stat-text"><span class="stat-value" id="statCreative">–</span><span class="stat-label">Creative Flags</span></div></div>
 </div>
-<p class="stat-strip-caption">Totals across every audit week on record — grows automatically as new weeks are added. The charts below focus on the current view.</p>
+<p class="stat-strip-caption" id="statCaption">Totals across every audit week on record — grows automatically as new weeks are added.</p>
 <div class="grid">
 <div class="chart-card">
 <div class="chart-card-head"><h2>⚙️ Execution Flags</h2><span id="executionTrend"></span></div>
@@ -289,6 +289,7 @@ var apiData=null;
 var executionChartObj=null;
 var creativeChartObj=null;
 var defaultIndices=[];
+var grandTotal=0,grandExecution=0,grandCreative=0;
 
 async function loadData(){
 var statusEl=document.getElementById("status");
@@ -305,15 +306,11 @@ recordsByWeek=data.recordsByWeek||[];
 weekLabels=data.weeks.map(function(w,i){return formatAuditLabel(i,w,(data.weekEnds||[])[i]);});
 apiData=data;
 
-// Stat cards always reflect the full history on record — every past week
-// plus any new ones added going forward — independent of whichever weeks
-// the charts below happen to be focused on or comparing.
-var grandTotal=(apiData.totalRecords||[]).reduce(function(a,b){return a+b;},0);
-var grandExecution=(apiData.executionFlags||[]).reduce(function(a,b){return a+b;},0);
-var grandCreative=(apiData.creativeFlags||[]).reduce(function(a,b){return a+b;},0);
-document.getElementById("statTotal").textContent=grandTotal;
-document.getElementById("statExecution").textContent=grandExecution;
-document.getElementById("statCreative").textContent=grandCreative;
+// The all-time totals, used for the stat cards whenever no comparison
+// filter is active. Grows automatically as new weeks are added.
+grandTotal=(apiData.totalRecords||[]).reduce(function(a,b){return a+b;},0);
+grandExecution=(apiData.executionFlags||[]).reduce(function(a,b){return a+b;},0);
+grandCreative=(apiData.creativeFlags||[]).reduce(function(a,b){return a+b;},0);
 
 var VISIBLE_WEEKS=3;
 var offset=Math.max(0,weekLabels.length-VISIBLE_WEEKS);
@@ -334,6 +331,21 @@ var chartLabels=indices.map(function(i){return weekLabels[i];});
 var chartExecution=indices.map(function(i){return apiData.executionFlags[i];});
 var chartCreative=indices.map(function(i){return apiData.creativeFlags[i];});
 var chartTotals=indices.map(function(i){return (apiData.totalRecords||[])[i]||0;});
+
+// Unfiltered: stat cards show the all-time grand total. Once a comparison
+// week is selected, they narrow down to just the weeks being compared.
+var captionEl=document.getElementById("statCaption");
+if(isComparison){
+document.getElementById("statTotal").textContent=chartTotals.reduce(function(a,b){return a+b;},0);
+document.getElementById("statExecution").textContent=chartExecution.reduce(function(a,b){return a+b;},0);
+document.getElementById("statCreative").textContent=chartCreative.reduce(function(a,b){return a+b;},0);
+if(captionEl)captionEl.textContent="Totals for the "+indices.length+" week"+(indices.length===1?"":"s")+" currently being compared.";
+}else{
+document.getElementById("statTotal").textContent=grandTotal;
+document.getElementById("statExecution").textContent=grandExecution;
+document.getElementById("statCreative").textContent=grandCreative;
+if(captionEl)captionEl.textContent="Totals across every audit week on record — grows automatically as new weeks are added.";
+}
 
 renderTrend("executionTrend",chartExecution);
 renderTrend("creativeTrend",chartCreative);
