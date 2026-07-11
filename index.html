@@ -339,8 +339,8 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 @media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}.stat-strip{grid-template-columns:1fr;}.summary-grid{grid-template-columns:1fr 1fr;}}
 
 /* Print report — hidden on screen entirely; only exists to be isolated and
-shown when window.print() fires. Plain, dense, single-page-first layout
-(banner + KPIs + a 2-column grid + a 2-up Top Performers grid) rather than a
+shown when window.print() fires. Single-page-first layout (banner + KPIs + a
+2-column grid + a 2-up Top Performers grid + a Pod breakdown) rather than a
 long vertical scroll of full-detail tables, since the goal is a one-page
 overview a PO can glance at, not an exhaustive export. */
 .print-report{display:none;}
@@ -353,71 +353,89 @@ printed page — that was the black box under the report. Stripping the
 background at print time keeps the whole page plain white. */
 html,body{background:#fff!important;background-image:none!important;box-shadow:none!important;}
 body>*:not(.print-report){display:none!important;}
-.print-report{display:block!important;background:#fff;color:#111;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:11px;}
-.print-report-banner{background:linear-gradient(120deg,#111827 0%,#312e81 65%,#4c1d55 120%);color:#fff;border-radius:10px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;}
-.print-report-brand{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#c7d2fe;margin:0 0 3px;}
-.print-report-banner h1{font-size:17px;font-weight:800;margin:0 0 2px;color:#fff;}
-.print-report-banner p{font-size:10.5px;color:#cbd5f5;margin:0;}
-.print-report-banner-tag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.16);color:#fff;padding:6px 12px;border-radius:999px;white-space:nowrap;flex-shrink:0;}
-.print-kpi-row{display:flex;gap:7px;margin:0 0 12px;}
-.print-kpi{flex:1;border:1px solid #e5e7eb;border-radius:7px;padding:7px 6px;text-align:center;background:#fafafa;}
-.print-kpi-value{display:block;font-size:16px;font-weight:800;color:#111;line-height:1.15;}
-.print-kpi-label{display:block;font-size:8px;color:#666;text-transform:uppercase;letter-spacing:.02em;margin-top:2px;}
-.print-report h2{font-size:11px;font-weight:800;margin:0 0 6px;padding-bottom:4px;border-bottom:2px solid #111;text-transform:uppercase;letter-spacing:.03em;page-break-after:avoid;}
-.print-report table{width:100%;border-collapse:collapse;font-size:9.5px;}
-.print-report th,.print-report td{border-bottom:1px solid #eee;padding:4px 6px;text-align:left;}
-.print-report th{background:#f8f9fb;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.02em;color:#555;}
+.print-report{display:block!important;background:#fff;color:#111;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:12px;}
+.print-report-banner{background:linear-gradient(120deg,#111827 0%,#312e81 65%,#4c1d55 120%);color:#fff;border-radius:12px;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:14px;}
+.print-report-brand-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.print-report-logo{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.print-report-logo svg{width:16px;height:10px;}
+.print-report-brand{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#c7d2fe;}
+.print-report-banner h1{font-size:21px;font-weight:800;margin:0 0 6px;color:#fff;letter-spacing:-.01em;}
+.print-report-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.print-report-week-pill{font-size:10.5px;font-weight:700;background:rgba(255,255,255,.16);color:#fff;padding:4px 11px;border-radius:999px;white-space:nowrap;}
+.print-report-generated{font-size:10px;color:#c7d2fe;}
+.print-report-banner-tag{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.16);color:#fff;padding:7px 14px;border-radius:999px;white-space:nowrap;flex-shrink:0;}
+.print-kpi-row{display:flex;gap:9px;margin:0 0 14px;}
+.print-kpi{flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:10px 8px;text-align:center;background:#fafafa;}
+.print-kpi-value{display:block;font-size:21px;font-weight:800;color:#111;line-height:1.15;}
+.print-kpi-label{display:block;font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.02em;margin-top:3px;}
+.print-report h2{font-size:13px;font-weight:800;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #111;text-transform:uppercase;letter-spacing:.03em;page-break-after:avoid;}
+.print-report table{width:100%;border-collapse:collapse;font-size:11px;}
+.print-report th,.print-report td{border-bottom:1px solid #eee;padding:6px 8px;text-align:left;}
+.print-report th{background:#f8f9fb;font-weight:700;font-size:9.5px;text-transform:uppercase;letter-spacing:.02em;color:#555;}
 .print-report tbody tr{page-break-inside:avoid;}
 /* Two-column main grid: chart+leaderboard on the left (more horizontal room
 needed for the table), chronic-flags/data-gap callouts in a narrow sidebar —
 this is what actually buys back the vertical space a single stacked column
 would burn through, which was the real reason the old layout spilled to a
 second page. */
-.print-report-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-bottom:14px;page-break-inside:avoid;}
+.print-report-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;margin-bottom:16px;page-break-inside:avoid;}
 .print-report-col-main,.print-report-col-side{min-width:0;}
-.print-side-card{border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px;margin-bottom:9px;page-break-inside:avoid;}
-.print-side-card h3{font-size:9.5px;font-weight:800;margin:0 0 6px;text-transform:uppercase;letter-spacing:.02em;color:#111;}
+.print-side-card{border:1px solid #e5e7eb;border-radius:9px;padding:12px 14px;margin-bottom:10px;page-break-inside:avoid;}
+.print-side-card h3{font-size:10.5px;font-weight:800;margin:0 0 7px;text-transform:uppercase;letter-spacing:.02em;color:#111;}
 .print-side-card.watch{border-left:3px solid #f59e0b;}
 .print-side-card.gaps{border-left:3px solid #ef4444;}
-.print-chronic-list,.print-gap-list{margin:0;padding-left:15px;font-size:9.5px;line-height:1.6;}
-.print-section-note{font-size:8.5px;color:#666;margin:4px 0 0;}
+.print-chronic-list,.print-gap-list{margin:0;padding-left:16px;font-size:10.5px;line-height:1.75;}
+.print-section-note{font-size:9.5px;color:#666;margin:5px 0 0;}
 /* CSS-only bar chart for the flag trend — deliberately not a Chart.js canvas
 so it renders correctly the instant window.print() fires, with no dependency
 on the canvas having been visible/sized beforehand (this container is
-display:none right up until the print media query flips it on). */
-.print-trend-legend{display:flex;gap:14px;font-size:8.5px;color:#333;margin:0 0 4px;}
-.print-trend-legend span.item{display:inline-flex;align-items:center;gap:4px;}
-.print-trend-legend .swatch{width:8px;height:8px;border-radius:2px;display:inline-block;}
+display:none right up until the print media query flips it on). Each bar and
+its value label are one normal-flow column (value stacked above bar via
+flex, not position:absolute over it), so there's no risk of the label
+clipping into whatever sits above the chart regardless of how tall the
+tallest bar is. */
+.print-trend-legend{display:flex;gap:16px;font-size:10px;color:#333;margin:0 0 6px;}
+.print-trend-legend span.item{display:inline-flex;align-items:center;gap:5px;}
+.print-trend-legend .swatch{width:9px;height:9px;border-radius:2px;display:inline-block;}
 .print-trend-legend .swatch.exec{background:#f59e0b;}
 .print-trend-legend .swatch.creative{background:#6366f1;}
-.print-trend-chart{display:flex;align-items:flex-end;gap:10px;height:95px;margin:8px 0 4px;padding:12px 2px 0;border-bottom:1px solid #ccc;overflow:visible;}
-.print-trend-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;overflow:visible;}
-.print-trend-bars{display:flex;align-items:flex-end;gap:3px;height:70px;overflow:visible;}
-.print-trend-bar{width:10px;border-radius:2px 2px 0 0;position:relative;}
+.print-trend-chart{display:flex;align-items:flex-end;gap:12px;margin:10px 0 6px;padding-bottom:0;border-bottom:1px solid #ccc;}
+.print-trend-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.print-trend-bars{display:flex;align-items:flex-end;gap:4px;}
+.print-trend-single{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;}
+.print-trend-bar-value{font-size:8.5px;font-weight:700;color:#111;white-space:nowrap;margin-bottom:3px;}
+.print-trend-bar{width:12px;border-radius:2px 2px 0 0;}
 .print-trend-bar.exec{background:#f59e0b;}
 .print-trend-bar.creative{background:#6366f1;}
-.print-trend-bar-value{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:7.5px;font-weight:700;color:#111;white-space:nowrap;}
-.print-trend-week{font-size:7.5px;color:#555;text-align:center;white-space:nowrap;}
+.print-trend-week{font-size:8.5px;color:#555;text-align:center;white-space:nowrap;padding-bottom:6px;}
 /* Top Performers as a 2-up grid of small cards (one per program/category)
 instead of stacked plain-text lines — same information, roughly half the
 vertical space. */
-.print-topperf-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:4px;page-break-inside:avoid;}
-.print-topperf-card{border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;min-width:0;}
-.print-topperf-card h4{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin:0 0 5px;color:#4f46e5;}
-.print-report-footer{margin-top:10px;font-size:8px;color:#888;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:6px;}
+.print-topperf-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px;page-break-inside:avoid;}
+.print-topperf-card{border:1px solid #e5e7eb;border-radius:9px;padding:11px 13px;min-width:0;}
+.print-topperf-card h4{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin:0 0 6px;color:#4f46e5;}
+/* Pod breakdown — the section that used to leave the bottom of the page
+empty; a genuinely new cut of the data (team workload by pod) rather than
+just stretched-out spacing, so the page fills with substance, not padding. */
+.print-pod-section{margin-bottom:6px;}
+.print-report-footer{margin-top:16px;font-size:9.5px;color:#888;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:9px;}
 /* The Δ cells reuse .leaderboard-move from the on-screen Leaderboard tab.
 Every variant already has hardcoded colors except "flat", which reads
 --muted/--tint-soft — theme variables tuned for the dark dashboard
 background, not this always-white report. */
 .print-report .leaderboard-move.flat{color:#6b7280;background:#f3f4f6;}
-.print-report .leaderboard-move{padding:2px 6px;font-size:9px;}
+.print-report .leaderboard-move{padding:3px 7px;font-size:10px;}
 }
 /* Trigger + popover for picking which week the printable report targets —
 kept as a menu off the print icon itself rather than a persistent topbar
 control, so it doesn't crowd the other icon buttons. On-screen only (the
 @media print block above hides everything except .print-report anyway). */
 .print-report-wrap{position:relative;}
-.print-week-menu{position:absolute;top:calc(100% + 10px);right:0;min-width:200px;max-height:300px;overflow-y:auto;background:var(--card-alt);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 36px rgba(0,0,0,.35);padding:6px;display:none;z-index:60;}
+/* Capped well below "every week that will ever exist" — this list only
+grows as more audit weeks pile up, so a fixed, scrollable height here means
+it stays a tidy popover instead of eventually stretching into a long list
+that runs down the page. */
+.print-week-menu{position:absolute;top:calc(100% + 10px);right:0;min-width:200px;max-height:190px;overflow-y:auto;background:var(--card-alt);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 36px rgba(0,0,0,.35);padding:6px;display:none;z-index:60;}
 .print-week-menu.open{display:block;animation:menuPop .14s ease;}
 .print-week-menu-label{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:8px 12px 6px;}
 .print-week-option{font-size:12.5px;font-weight:600;color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:background .12s ease;}
@@ -736,9 +754,19 @@ delay for an entrance rather than everything popping in at once. */
 <div class="print-report" id="printReport">
 <div class="print-report-banner">
 <div>
-<p class="print-report-brand">🐬 editoz.club</p>
+<div class="print-report-brand-row">
+<div class="print-report-logo"><svg viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2 6.5C7 2 15 1.5 21 4.5C24 6 26.5 5.5 29 3.5C25.5 8.5 18 10 12.5 7.5C8.5 5.7 5 5.3 2 6.5Z" fill="white"/>
+<path d="M2 12C7.5 7.5 16 7 22 10C25 11.5 27 11 29.5 9C26 14 18.5 15.5 13 13C9 11.2 5 10.8 2 12Z" fill="white" fill-opacity="0.75"/>
+<path d="M2 17.5C7.5 13.5 15.5 13 21 15.5C23.5 16.7 25.5 16.3 28 14.5C25 19 18 20 12.8 17.8C9.2 16.2 5.5 15.9 2 17.5Z" fill="white" fill-opacity="0.5"/>
+</svg></div>
+<span class="print-report-brand">editoz.club</span>
+</div>
 <h1>Flag Trends — Weekly Report</h1>
-<p id="printReportWeek"></p>
+<div class="print-report-meta">
+<span class="print-report-week-pill" id="printReportWeekPill"></span>
+<span class="print-report-generated" id="printReportGenerated"></span>
+</div>
 </div>
 <div class="print-report-banner-tag" id="printReportWeekTag"></div>
 </div>
@@ -768,6 +796,10 @@ delay for an entrance rather than everything popping in at once. */
 </div>
 <h2>Top Performers</h2>
 <div class="print-topperf-grid" id="printTopPerformers"></div>
+<div class="print-pod-section">
+<h2>Pod Breakdown</h2>
+<table id="printPodTable"></table>
+</div>
 <p class="print-report-footer"><span>Generated from the Editoz Flag Trends Dashboard</span><span>editoz.club</span></p>
 </div>
 <script>
@@ -2084,15 +2116,19 @@ return {execution:recs.filter(function(r){return r.executionFlag;}).length,creat
 });
 var maxVal=1;
 counts.forEach(function(c){maxVal=Math.max(maxVal,c.execution,c.creative);});
+// Each bar is drawn in its own normal-flow column (value label stacked above
+// via flex, not position:absolute over the bar), so the tallest bar's label
+// can never clip into the "Flag Trend" heading or its border above it —
+// whatever the peak value is, the column just grows taller to fit.
 el.innerHTML=weeks.map(function(w,i){
 var c=counts[i];
-var eh=Math.max(3,Math.round((c.execution/maxVal)*100));
-var ch=Math.max(3,Math.round((c.creative/maxVal)*100));
+var eh=Math.max(4,Math.round((c.execution/maxVal)*68));
+var ch=Math.max(4,Math.round((c.creative/maxVal)*68));
 var label=(weekLabels[w]||"").replace(" audit","");
 return '<div class="print-trend-col">'+
 '<div class="print-trend-bars">'+
-'<div class="print-trend-bar exec" style="height:'+eh+'px"><span class="print-trend-bar-value">'+c.execution+'</span></div>'+
-'<div class="print-trend-bar creative" style="height:'+ch+'px"><span class="print-trend-bar-value">'+c.creative+'</span></div>'+
+'<div class="print-trend-single"><span class="print-trend-bar-value">'+c.execution+'</span><div class="print-trend-bar exec" style="height:'+eh+'px"></div></div>'+
+'<div class="print-trend-single"><span class="print-trend-bar-value">'+c.creative+'</span><div class="print-trend-bar creative" style="height:'+ch+'px"></div></div>'+
 '</div>'+
 '<div class="print-trend-week">'+escapeHtml(label)+'</div>'+
 '</div>';
@@ -2108,8 +2144,10 @@ return records.filter(function(r){return typeof r.maxPostViews!=="number";}).map
 function buildPrintReport(targetIdx){
 var idx=(targetIdx===undefined||targetIdx===null)?weekLabels.length-1:targetIdx;
 var isCurrent=idx===weekLabels.length-1;
-var weekEl=document.getElementById("printReportWeek");
-if(weekEl)weekEl.textContent=idx>=0?weekLabels[idx]+" — generated "+new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}):"No data available";
+var pillEl=document.getElementById("printReportWeekPill");
+var genEl=document.getElementById("printReportGenerated");
+if(pillEl)pillEl.textContent=idx>=0?("📅 "+weekLabels[idx]):"No data available";
+if(genEl)genEl.textContent=idx>=0?("Generated "+new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})):"";
 var tagEl=document.getElementById("printReportWeekTag");
 if(tagEl)tagEl.textContent=isCurrent?"Current Week":"Past Week";
 
@@ -2204,6 +2242,31 @@ if(remaining>0)noteParts.push(remaining+" more ranked client"+(remaining===1?"":
 if(excluded>0)noteParts.push(excluded+" audited with no Max Post Views");
 lbNoteEl.textContent=noteParts.length?noteParts.join(" · ")+".":"";
 }
+}
+
+// Pod Breakdown — a genuinely new cut of this week's data (workload and flag
+// rate per pod) rather than just more padding, so the report fills out the
+// rest of the page with something worth reading.
+var podTable=document.getElementById("printPodTable");
+if(podTable){
+var podRecords=idx>=0?(recordsByWeek[idx]||[]):[];
+var podMap={};
+podRecords.forEach(function(r){
+var pod=r.pod||"Unassigned";
+if(!podMap[pod])podMap[pod]={pod:pod,total:0,flagged:0};
+podMap[pod].total++;
+if(r.executionFlag||r.creativeFlag)podMap[pod].flagged++;
+});
+var podRows=Object.keys(podMap).map(function(k){return podMap[k];});
+podRows.sort(function(a,b){return b.total-a.total;});
+var podHtml="<tr><th>Pod</th><th>Clients Audited</th><th>Flagged</th><th>Clean</th><th>Flag Rate</th></tr>";
+podRows.forEach(function(p){
+var clean=p.total-p.flagged;
+var rate=p.total?Math.round((p.flagged/p.total)*100):0;
+podHtml+="<tr><td>"+escapeHtml(p.pod)+"</td><td>"+p.total+"</td><td>"+p.flagged+"</td><td>"+clean+"</td><td>"+rate+"%</td></tr>";
+});
+if(!podRows.length)podHtml+="<tr><td colspan=\"5\">No pod data for this week.</td></tr>";
+podTable.innerHTML=podHtml;
 }
 }
 function populatePrintWeekMenu(){
