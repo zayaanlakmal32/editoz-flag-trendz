@@ -416,15 +416,30 @@ vertical space. */
 .print-topperf-card h4{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin:0 0 6px;color:#4f46e5;}
 /* Pod breakdown — the section that used to leave the bottom of the page
 empty; a genuinely new cut of the data (team workload by pod) rather than
-just stretched-out spacing, so the page fills with substance, not padding. */
-.print-pod-section{margin-bottom:6px;}
-.print-report-footer{margin-top:16px;font-size:9.5px;color:#888;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:9px;}
+just stretched-out spacing, so the page fills with substance, not padding.
+Rendered as a row of compact chips rather than a full <table> (header row +
+data rows) — same information, a fraction of the height, which is also what
+buys back the room a table version pushed onto a second page. */
+.print-pod-section{margin-bottom:4px;}
+.print-pod-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.print-pod-chip{flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.print-pod-chip-name{font-size:10.5px;font-weight:800;color:#111;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.print-pod-chip-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.print-pod-chip-stats{font-size:9.5px;color:#555;white-space:nowrap;}
+.print-pod-rate{font-weight:800;padding:2px 8px;border-radius:999px;font-size:9.5px;margin-left:6px;}
+.print-pod-rate.low{color:#15803d;background:#dcfce7;}
+.print-pod-rate.mid{color:#92400e;background:#fef3c7;}
+.print-pod-rate.high{color:#991b1b;background:#fee2e2;}
+.print-report-footer{margin-top:12px;font-size:9.5px;color:#888;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:7px;}
 /* The Δ cells reuse .leaderboard-move from the on-screen Leaderboard tab.
 Every variant already has hardcoded colors except "flat", which reads
 --muted/--tint-soft — theme variables tuned for the dark dashboard
 background, not this always-white report. */
 .print-report .leaderboard-move.flat{color:#6b7280;background:#f3f4f6;}
 .print-report .leaderboard-move{padding:3px 7px;font-size:10px;}
+/* Subtle zebra striping so the tables read less like a plain text dump —
+costs no extra vertical space, just alternating row tint. */
+.print-report tbody tr:nth-child(even){background:#fafbfc;}
 }
 /* Trigger + popover for picking which week the printable report targets —
 kept as a menu off the print icon itself rather than a persistent topbar
@@ -798,7 +813,7 @@ delay for an entrance rather than everything popping in at once. */
 <div class="print-topperf-grid" id="printTopPerformers"></div>
 <div class="print-pod-section">
 <h2>Pod Breakdown</h2>
-<table id="printPodTable"></table>
+<div class="print-pod-grid" id="printPodGrid"></div>
 </div>
 <p class="print-report-footer"><span>Generated from the Editoz Flag Trends Dashboard</span><span>editoz.club</span></p>
 </div>
@@ -2246,9 +2261,11 @@ lbNoteEl.textContent=noteParts.length?noteParts.join(" · ")+".":"";
 
 // Pod Breakdown — a genuinely new cut of this week's data (workload and flag
 // rate per pod) rather than just more padding, so the report fills out the
-// rest of the page with something worth reading.
-var podTable=document.getElementById("printPodTable");
-if(podTable){
+// rest of the page with something worth reading. Rendered as compact chips
+// (dot + name + inline stats + a color-coded rate badge) rather than a full
+// table, which costs noticeably less vertical space.
+var podGridEl=document.getElementById("printPodGrid");
+if(podGridEl){
 var podRecords=idx>=0?(recordsByWeek[idx]||[]):[];
 var podMap={};
 podRecords.forEach(function(r){
@@ -2259,14 +2276,19 @@ if(r.executionFlag||r.creativeFlag)podMap[pod].flagged++;
 });
 var podRows=Object.keys(podMap).map(function(k){return podMap[k];});
 podRows.sort(function(a,b){return b.total-a.total;});
-var podHtml="<tr><th>Pod</th><th>Clients Audited</th><th>Flagged</th><th>Clean</th><th>Flag Rate</th></tr>";
-podRows.forEach(function(p){
-var clean=p.total-p.flagged;
+if(podRows.length){
+podGridEl.innerHTML=podRows.map(function(p){
 var rate=p.total?Math.round((p.flagged/p.total)*100):0;
-podHtml+="<tr><td>"+escapeHtml(p.pod)+"</td><td>"+p.total+"</td><td>"+p.flagged+"</td><td>"+clean+"</td><td>"+rate+"%</td></tr>";
-});
-if(!podRows.length)podHtml+="<tr><td colspan=\"5\">No pod data for this week.</td></tr>";
-podTable.innerHTML=podHtml;
+var tier=rate>=60?"high":rate>=30?"mid":"low";
+var dotColor=leaderboardPillColor(p.pod).text;
+return '<div class="print-pod-chip">'+
+'<span class="print-pod-chip-name"><span class="print-pod-chip-dot" style="background:'+dotColor+'"></span>'+escapeHtml(p.pod)+'</span>'+
+'<span class="print-pod-chip-stats">'+p.total+' audited · '+p.flagged+' flagged<span class="print-pod-rate '+tier+'">'+rate+'%</span></span>'+
+'</div>';
+}).join("");
+}else{
+podGridEl.innerHTML='<p class="print-section-note">No pod data for this week.</p>';
+}
 }
 }
 function populatePrintWeekMenu(){
