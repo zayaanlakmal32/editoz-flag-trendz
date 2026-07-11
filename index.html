@@ -52,15 +52,21 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 .modal-head p{margin:2px 0 0;font-size:12.5px;color:var(--muted);}
 .modal-close{border:none;background:#f2f3f5;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--muted);flex-shrink:0;}
 .modal-close:hover{background:#e8e9ec;}
-.modal-body{overflow-y:auto;padding:8px 12px;}
-.record-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 12px;border-bottom:1px solid #f2f3f5;}
+.modal-body{overflow-y:auto;padding:4px 12px;}
+.record-row{padding:14px 12px;border-bottom:1px solid #f2f3f5;}
 .record-row:last-child{border-bottom:none;}
+.record-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
 .record-title{font-size:13.5px;font-weight:600;}
-.record-meta{font-size:12px;color:var(--muted);margin-top:2px;}
 .record-flags{display:flex;gap:6px;flex-shrink:0;}
 .flag-pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;}
 .flag-pill.on{color:#0f7a47;background:#ecfdf3;}
 .flag-pill.off{color:#9ca3af;background:#f2f3f5;}
+.record-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.tag{font-size:11px;font-weight:600;color:#3f4759;background:#f2f3f5;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+.note-block{margin-top:10px;background:#fafbfc;border:1px solid #f0f1f3;border-radius:10px;padding:8px 10px;}
+.note-label{display:block;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
+.note-text{margin:0;font-size:12.5px;line-height:1.5;color:#4b5563;white-space:pre-wrap;}
+.note-toggle{margin-top:4px;border:none;background:none;color:#4f46e5;font-size:11.5px;font-weight:600;cursor:pointer;padding:0;}
 .chart-wrap canvas{cursor:pointer;}
 @media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}.stat-strip{grid-template-columns:1fr;}}
 </style>
@@ -149,18 +155,36 @@ body.innerHTML="";
 if(records.length===0){
 body.innerHTML='<div class="record-row"><span class="record-meta">No records found for this week.</span></div>';
 }
+var TAG_LIMIT=32;
+var NOTE_PREVIEW=160;
 records.forEach(function(r){
 var row=document.createElement("div");
 row.className="record-row";
-var metaText=Object.keys(r.meta).map(function(k){return r.meta[k];}).join(" · ");
+var tags=[];
+var notes=[];
+Object.keys(r.meta).forEach(function(k){
+var v=String(r.meta[k]);
+if(v.length<=TAG_LIMIT){tags.push(v);}
+else{notes.push({label:k,value:v});}
+});
+var tagsHtml=tags.length?'<div class="record-tags">'+tags.map(function(t){return '<span class="tag">'+escapeHtml(t)+'</span>';}).join("")+'</div>':"";
+var notesHtml=notes.map(function(n){
+var isLong=n.value.length>NOTE_PREVIEW;
+var preview=isLong?n.value.slice(0,NOTE_PREVIEW).trim()+"…":n.value;
+return '<div class="note-block"><span class="note-label">'+escapeHtml(n.label)+'</span>'+
+'<p class="note-text" data-full="'+escapeHtml(n.value)+'" data-preview="'+escapeHtml(preview)+'">'+escapeHtml(preview)+'</p>'+
+(isLong?'<button type="button" class="note-toggle">Show more</button>':'')+
+'</div>';
+}).join("");
 row.innerHTML=
-'<div><div class="record-title">'+escapeHtml(r.title)+'</div>'+
-(metaText?'<div class="record-meta">'+escapeHtml(metaText)+'</div>':'')+
-'</div>'+
+'<div class="record-top">'+
+'<div class="record-title">'+escapeHtml(r.title)+'</div>'+
 '<div class="record-flags">'+
 '<span class="flag-pill '+(r.executionFlag?"on":"off")+'">⚙️ '+(r.executionFlag?"Flagged":"Clear")+'</span>'+
 '<span class="flag-pill '+(r.creativeFlag?"on":"off")+'">🎨 '+(r.creativeFlag?"Flagged":"Clear")+'</span>'+
-'</div>';
+'</div>'+
+'</div>'+
+tagsHtml+notesHtml;
 body.appendChild(row);
 });
 backdrop.classList.add("visible");
@@ -169,6 +193,14 @@ function closeModal(){document.getElementById("modalBackdrop").classList.remove(
 function escapeHtml(str){var d=document.createElement("div");d.textContent=String(str);return d.innerHTML;}
 document.getElementById("modalClose").addEventListener("click",closeModal);
 document.getElementById("modalBackdrop").addEventListener("click",function(e){if(e.target===e.currentTarget)closeModal();});
+document.getElementById("modalBody").addEventListener("click",function(e){
+if(!e.target.classList.contains("note-toggle"))return;
+var block=e.target.closest(".note-block");
+var textEl=block.querySelector(".note-text");
+var expanded=e.target.getAttribute("data-expanded")==="1";
+if(expanded){textEl.textContent=textEl.getAttribute("data-preview");e.target.textContent="Show more";e.target.setAttribute("data-expanded","0");}
+else{textEl.textContent=textEl.getAttribute("data-full");e.target.textContent="Show less";e.target.setAttribute("data-expanded","1");}
+});
 
 async function loadData(){
 var statusEl=document.getElementById("status");
