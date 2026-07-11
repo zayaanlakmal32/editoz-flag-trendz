@@ -320,6 +320,11 @@ export default async function handler(req, res) {
       creativeFlags: weeks.map((w) => weekMap.get(w).creative),
       totalRecords: weeks.map((w) => weekMap.get(w).total),
       recordsByWeek: weeks.map((w) => weekMap.get(w).records),
+      // Lets the frontend tell "integration isn't connected to Project
+      // Tracker" apart from "no categorized posts this week" instead of
+      // guessing — 0 almost always means the Notion integration needs to be
+      // added as a connection on the Project Tracker database itself.
+      projectTrackerLinkedCount: projectTrackerMap.size,
     });
   } catch (err) {
     return res.status(500).json({
