@@ -43,6 +43,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .stat-value{display:block;font-size:24px;font-weight:700;letter-spacing:-0.02em;}
 .stat-label{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;}
 footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
+.hint{font-size:11.5px;color:#9ca3af;text-align:center;margin-top:8px;}
+.modal-backdrop{position:fixed;inset:0;background:rgba(12,13,16,.5);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:24px;z-index:50;}
+.modal-backdrop.visible{display:flex;}
+.modal{background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(16,24,40,.25);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);}
+.modal-head h3{margin:0;font-size:16px;font-weight:700;}
+.modal-head p{margin:2px 0 0;font-size:12.5px;color:var(--muted);}
+.modal-close{border:none;background:#f2f3f5;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--muted);flex-shrink:0;}
+.modal-close:hover{background:#e8e9ec;}
+.modal-body{overflow-y:auto;padding:8px 12px;}
+.record-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 12px;border-bottom:1px solid #f2f3f5;}
+.record-row:last-child{border-bottom:none;}
+.record-title{font-size:13.5px;font-weight:600;}
+.record-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.record-flags{display:flex;gap:6px;flex-shrink:0;}
+.flag-pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;}
+.flag-pill.on{color:#0f7a47;background:#ecfdf3;}
+.flag-pill.off{color:#9ca3af;background:#f2f3f5;}
+.chart-wrap canvas{cursor:pointer;}
 @media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}.stat-strip{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -75,6 +94,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="skeleton" id="executionSkeleton"><div></div><div></div><div></div></div>
 <canvas id="executionChart"></canvas>
 </div>
+<div class="hint">Click a bar for that week's details</div>
 </div>
 <div class="chart-card">
 <div class="chart-card-head"><h2>🎨 Creative Flags</h2><span id="creativeTrend"></span></div>
@@ -82,9 +102,20 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="skeleton" id="creativeSkeleton"><div></div><div></div><div></div></div>
 <canvas id="creativeChart"></canvas>
 </div>
+<div class="hint">Click a bar for that week's details</div>
 </div>
 </div>
 <footer>Weekly Audit Records &middot; synced from Notion</footer>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+<div class="modal">
+<div class="modal-head">
+<div><h3 id="modalTitle">Week</h3><p id="modalSubtitle"></p></div>
+<button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+</div>
+<div class="modal-body" id="modalBody"></div>
+</div>
 </div>
 <script>
 function ordinal(n){var s=["th","st","nd","rd"];var v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
@@ -105,6 +136,40 @@ if(pct>0){el.className="trend up";el.textContent="▲ +"+pct+"%";}
 else if(pct<0){el.className="trend down";el.textContent="▼ "+pct+"%";}
 else{el.className="trend flat";el.textContent="– 0%";}
 }
+var weekLabels=[];
+var recordsByWeek=[];
+
+function openModal(weekIndex,flagKey){
+var backdrop=document.getElementById("modalBackdrop");
+var records=recordsByWeek[weekIndex]||[];
+document.getElementById("modalTitle").textContent=weekLabels[weekIndex];
+document.getElementById("modalSubtitle").textContent=records.length+" record"+(records.length===1?"":"s")+" audited this week";
+var body=document.getElementById("modalBody");
+body.innerHTML="";
+if(records.length===0){
+body.innerHTML='<div class="record-row"><span class="record-meta">No records found for this week.</span></div>';
+}
+records.forEach(function(r){
+var row=document.createElement("div");
+row.className="record-row";
+var metaText=Object.keys(r.meta).map(function(k){return r.meta[k];}).join(" · ");
+row.innerHTML=
+'<div><div class="record-title">'+escapeHtml(r.title)+'</div>'+
+(metaText?'<div class="record-meta">'+escapeHtml(metaText)+'</div>':'')+
+'</div>'+
+'<div class="record-flags">'+
+'<span class="flag-pill '+(r.executionFlag?"on":"off")+'">⚙️ '+(r.executionFlag?"Flagged":"Clear")+'</span>'+
+'<span class="flag-pill '+(r.creativeFlag?"on":"off")+'">🎨 '+(r.creativeFlag?"Flagged":"Clear")+'</span>'+
+'</div>';
+body.appendChild(row);
+});
+backdrop.classList.add("visible");
+}
+function closeModal(){document.getElementById("modalBackdrop").classList.remove("visible");}
+function escapeHtml(str){var d=document.createElement("div");d.textContent=String(str);return d.innerHTML;}
+document.getElementById("modalClose").addEventListener("click",closeModal);
+document.getElementById("modalBackdrop").addEventListener("click",function(e){if(e.target===e.currentTarget)closeModal();});
+
 async function loadData(){
 var statusEl=document.getElementById("status");
 try{
@@ -116,15 +181,16 @@ statusEl.textContent="Error loading data: "+(data.error||res.status)+(data.notio
 console.error("API error:",data);
 return;
 }
-var labels=data.weeks.map(formatWeekRange);
+weekLabels=data.weeks.map(formatWeekRange);
+recordsByWeek=data.recordsByWeek||[];
 var totals=data.totalRecords||[];
 document.getElementById("statTotal").textContent=totals.reduce(function(a,b){return a+b;},0);
 document.getElementById("statExecution").textContent=data.executionFlags.reduce(function(a,b){return a+b;},0);
 document.getElementById("statCreative").textContent=data.creativeFlags.reduce(function(a,b){return a+b;},0);
 renderTrend("executionTrend",data.executionFlags);
 renderTrend("creativeTrend",data.creativeFlags);
-renderChart("executionChart","executionSkeleton",labels,data.executionFlags,totals,"#4f46e5","#7c7ff2");
-renderChart("creativeChart","creativeSkeleton",labels,data.creativeFlags,totals,"#db2777","#f0479f");
+renderChart("executionChart","executionSkeleton",weekLabels,data.executionFlags,totals,"#4f46e5","#7c7ff2");
+renderChart("creativeChart","creativeSkeleton",weekLabels,data.creativeFlags,totals,"#db2777","#f0479f");
 }catch(err){
 statusEl.classList.add("visible");
 statusEl.textContent="Something went wrong rendering the dashboard: "+err.message;
@@ -137,7 +203,7 @@ var lastIndex=values.length-1;
 new Chart(ctx,{
 type:"bar",
 data:{labels:labels,datasets:[{label:"Flags",data:values,backgroundColor:function(context){var i=context.dataIndex;var chart=context.chart;var ctx2=chart.ctx;var chartArea=chart.chartArea;if(!chartArea)return colorTop;if(i===lastIndex)return makeGradient(ctx2,chartArea,colorTop,colorBottom);return hexToRgba(colorTop,0.28);},borderRadius:8,maxBarThickness:72}]},
-options:{responsive:true,maintainAspectRatio:false,animation:{onComplete:function(){var sk=document.getElementById(skeletonId);if(sk)sk.style.display="none";}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false,callbacks:{label:function(item){var total=totals[item.dataIndex]||0;var rate=total>0?Math.round((item.raw/total)*100):0;return item.raw+" flags — "+rate+"% of "+total+" records";}}}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}}
+options:{responsive:true,maintainAspectRatio:false,onClick:function(evt,elements){if(elements.length>0)openModal(elements[0].index);},animation:{onComplete:function(){var sk=document.getElementById(skeletonId);if(sk)sk.style.display="none";}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false,callbacks:{label:function(item){var total=totals[item.dataIndex]||0;var rate=total>0?Math.round((item.raw/total)*100):0;return item.raw+" flags — "+rate+"% of "+total+" records";}}}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}}
 });
 }
 loadData();
