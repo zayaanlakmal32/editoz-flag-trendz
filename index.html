@@ -273,7 +273,15 @@ var row=document.createElement("div");
 row.className="record-row";
 row.setAttribute("data-client",String(r.title||"").toLowerCase());
 
-var tagsHtml=(r.tags&&r.tags.length)?'<div class="record-tags">'+r.tags.map(function(t){return '<div class="tag"><span class="tag-label">'+escapeHtml(t.label)+'</span><span class="tag-value">'+escapeHtml(t.value)+'</span></div>';}).join("")+'</div>':"";
+// When viewing a flag-specific chart, the other flag's priority tag is
+// noise — hide "Creative Priority" on the execution view and vice versa.
+// The Overall Audits view (filterKey "all") keeps every tag.
+var visibleTags=(r.tags||[]).filter(function(t){
+if(filterKey==="execution"&&t.label==="Creative Priority")return false;
+if(filterKey==="creative"&&t.label==="Execution Priority")return false;
+return true;
+});
+var tagsHtml=visibleTags.length?'<div class="record-tags">'+visibleTags.map(function(t){return '<div class="tag"><span class="tag-label">'+escapeHtml(t.label)+'</span><span class="tag-value">'+escapeHtml(t.value)+'</span></div>';}).join("")+'</div>':"";
 
 var topPosts=(r.posts||[]).filter(function(p){return p.section==="Top";});
 var bottomPosts=(r.posts||[]).filter(function(p){return p.section==="Bottom";});
@@ -419,7 +427,7 @@ renderTrend("creativeTrend",chartCreative);
 if(auditsChartObj)auditsChartObj.destroy();
 if(executionChartObj)executionChartObj.destroy();
 if(creativeChartObj)creativeChartObj.destroy();
-auditsChartObj=renderChart({canvasId:"auditsChart",skeletonId:"auditsSkeleton",labels:chartLabels,values:chartTotals,totals:chartTotals,colorTop:"#0f172a",colorBottom:"#475569",indices:indices,type:"bar",filterKey:"all",tooltipLabel:totalTooltip});
+auditsChartObj=renderChart({canvasId:"auditsChart",skeletonId:"auditsSkeleton",labels:chartLabels,values:chartTotals,totals:chartTotals,colorTop:"#0d9488",colorBottom:"#5eead4",indices:indices,type:"bar",filterKey:"all",tooltipLabel:totalTooltip});
 executionChartObj=renderChart({canvasId:"executionChart",skeletonId:"executionSkeleton",labels:chartLabels,values:chartExecution,totals:chartTotals,colorTop:"#4f46e5",colorBottom:"#7c7ff2",indices:indices,type:"line",filterKey:"execution",tooltipLabel:flagTooltip});
 creativeChartObj=renderChart({canvasId:"creativeChart",skeletonId:"creativeSkeleton",labels:chartLabels,values:chartCreative,totals:chartTotals,colorTop:"#db2777",colorBottom:"#f0479f",indices:indices,type:"line",filterKey:"creative",tooltipLabel:flagTooltip});
 
