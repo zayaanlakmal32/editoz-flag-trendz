@@ -1,7 +1,8 @@
 // api/audit.js
 // Vercel serverless function (Node.js, ESM) that queries the "Weekly Audit
 // Records" Notion database and returns flag counts + structured per-record
-// detail (tracked posts, tags, notes, links) for the last 3 weeks.
+// detail (tracked posts, tags, notes, links) for every audit week on record,
+// growing automatically as new weeks are added.
 
 const NOTION_VERSION = "2022-06-28";
 const DATABASE_ID = "507ca77b-0245-4fb5-bb87-150b93f31910";
@@ -139,37 +140,55 @@ export default async function handler(req, res) {
   }
 
   try {
-    const notionRes = await fetch(
-      `https://api.notion.com/v1/databases/${DATABASE_ID}/query`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Notion-Version": NOTION_VERSION,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sorts: [{ property: WEEK_PROPERTY, direction: "descending" }],
-          page_size: 100,
-        }),
+    // Notion caps each query response at 100 rows, so we page through
+    // start_cursor/has_more until every record has been fetched. Without
+    // this, only the most recent ~100 rows would ever be visible, which
+    // silently caps how many weeks of history the dashboard can show.
+    let allResults = [];
+    let cursor = undefined;
+    for (;;) {
+      const requestBody = {
+        sorts: [{ property: WEEK_PROPERTY, direction: "descending" }],
+        page_size: 100,
+      };
+      if (cursor) requestBody.start_cursor = cursor;
+
+      const notionRes = await fetch(
+        `https://api.notion.com/v1/databases/${DATABASE_ID}/query`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Notion-Version": NOTION_VERSION,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      const notionBody = await notionRes.json();
+
+      if (!notionRes.ok) {
+        return res.status(notionRes.status).json({
+          error: "Notion API request failed",
+          status: notionRes.status,
+          notion_error: notionBody,
+        });
       }
-    );
 
-    const notionBody = await notionRes.json();
-
-    if (!notionRes.ok) {
-      return res.status(notionRes.status).json({
-        error: "Notion API request failed",
-        status: notionRes.status,
-        notion_error: notionBody,
-      });
+      allResults = allResults.concat(notionBody.results);
+      if (notionBody.has_more && notionBody.next_cursor) {
+        cursor = notionBody.next_cursor;
+      } else {
+        break;
+      }
     }
 
     // Group rows by "Week Of" start date. "Week Of" is a real Notion date
     // *range* (start + end) — we use the actual end date rather than
     // assuming a fixed 7-day span.
     const weekMap = new Map();
-    for (const page of notionBody.results) {
+    for (const page of allResults) {
       const props = page.properties;
       const weekDate = props[WEEK_PROPERTY]?.date;
       const weekStart = weekDate?.start;
@@ -208,8 +227,10 @@ export default async function handler(req, res) {
       bucket.records.push({ title, executionFlag, creativeFlag, posts, tags, notes, links });
     }
 
-    // Last 3 distinct weeks, oldest → newest for chart display.
-    const weeks = [...weekMap.keys()].sort().slice(-3);
+    // Every distinct week found, oldest → newest for chart display. This
+    // grows automatically as new weeks are added to the database — no
+    // fixed cap.
+    const weeks = [...weekMap.keys()].sort();
 
     return res.status(200).json({
       weeks,
