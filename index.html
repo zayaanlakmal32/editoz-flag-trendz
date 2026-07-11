@@ -178,7 +178,10 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 .note-toggle{margin-top:4px;border:none;background:none;color:#a5b4fc;font-size:11.5px;font-weight:600;cursor:pointer;padding:0;}
 .post-section-label{font-size:10.5px;font-weight:700;color:#8890a0;text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px;}
 .post-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 10px;background:var(--card-alt);border:1px solid var(--border);border-radius:9px;margin-bottom:6px;}
-.post-link{font-size:12.5px;font-weight:600;color:var(--ink);text-decoration:none;display:block;}
+.post-title-wrap{display:flex;align-items:center;gap:8px;min-width:0;}
+.post-platform-icon{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.35);}
+.post-platform-icon svg{width:12px;height:12px;}
+.post-link{font-size:12.5px;font-weight:600;color:var(--ink);text-decoration:none;display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .post-link:hover{color:#a5b4fc;text-decoration:underline;}
 .post-meta{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .post-format{font-size:10.5px;font-weight:600;color:var(--muted);background:rgba(255,255,255,.07);padding:2px 7px;border-radius:999px;white-space:nowrap;}
@@ -434,9 +437,11 @@ var tagsHtml=visibleTags.length?'<div class="record-tags">'+visibleTags.map(func
 var topPosts=(r.posts||[]).filter(function(p){return p.section==="Top";});
 var bottomPosts=(r.posts||[]).filter(function(p){return p.section==="Bottom";});
 function renderPostRow(p){
-var titleHtml=p.link?'<a class="post-link" href="'+escapeAttr(p.link)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(p.title)+'</a>':'<span class="post-link">'+escapeHtml(p.title)+'</span>';
+var displayTitle=stripPlatformSuffix(p.title);
+var iconHtml=platformIconHtml(p);
+var titleHtml=p.link?'<a class="post-link" href="'+escapeAttr(p.link)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(displayTitle)+'</a>':'<span class="post-link">'+escapeHtml(displayTitle)+'</span>';
 return '<div class="post-row">'+
-'<div>'+titleHtml+'</div>'+
+'<div class="post-title-wrap">'+iconHtml+titleHtml+'</div>'+
 '<div class="post-meta">'+
 (p.format?'<span class="post-format">'+escapeHtml(p.format)+'</span>':'')+
 '<span class="post-views">'+shortNumber(p.views)+' views</span>'+
@@ -493,6 +498,46 @@ if(emptyEl)emptyEl.style.display=(q!==""&&visibleCount===0)?"block":"none";
 function closeModal(){document.getElementById("modalBackdrop").classList.remove("visible");}
 function escapeHtml(str){var d=document.createElement("div");d.textContent=String(str);return d.innerHTML;}
 function escapeAttr(str){return escapeHtml(str).replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+
+// Platform logos for the Top/Bottom post rows — swaps the "(TikTok)" /
+// "(IG)" text tag that lives in the post title for the actual brand mark,
+// so it's recognizable at a glance instead of read as a suffix.
+var PLATFORM_ICONS={
+tiktok:{bg:"#000",svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.43 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>'},
+instagram:{bg:"linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.98-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.198-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'},
+facebook:{bg:"#1877F2",svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M22.675 0h-21.35C.6 0 0 .6 0 1.325v21.351C0 23.4.6 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.4 24 24 23.4 24 22.676V1.325C24 .6 23.4 0 22.675 0z"/></svg>'},
+youtube:{bg:"#FF0000",svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M23.498 6.186a2.999 2.999 0 0 0-2.113-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.385.524A2.999 2.999 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.999 2.999 0 0 0 2.113 2.117c1.88.524 9.385.524 9.385.524s7.505 0 9.385-.524a2.999 2.999 0 0 0 2.113-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12l-6.068 3.568z"/></svg>'},
+linkedin:{bg:"#0A66C2",svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.114 20.452H3.558V9h3.556v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>'}
+};
+function detectPlatform(post){
+var link=String((post&&post.link)||"").toLowerCase();
+if(link.indexOf("tiktok.com")!==-1)return"tiktok";
+if(link.indexOf("instagram.com")!==-1)return"instagram";
+if(link.indexOf("facebook.com")!==-1||link.indexOf("fb.com")!==-1)return"facebook";
+if(link.indexOf("youtube.com")!==-1||link.indexOf("youtu.be")!==-1)return"youtube";
+if(link.indexOf("linkedin.com")!==-1)return"linkedin";
+// No link, or an unrecognized domain — fall back to the "(TikTok)" / "(IG)"
+// style tag the team already types at the end of the post title in Notion.
+var m=/\(([^)]+)\)\s*$/.exec(String((post&&post.title)||"").trim());
+if(m){
+var tag=m[1].toLowerCase().replace(/[^a-z]/g,"");
+if(tag==="tiktok")return"tiktok";
+if(tag==="ig"||tag==="instagram")return"instagram";
+if(tag==="fb"||tag==="facebook")return"facebook";
+if(tag==="yt"||tag==="youtube")return"youtube";
+if(tag==="li"||tag==="linkedin")return"linkedin";
+}
+return null;
+}
+function stripPlatformSuffix(title){
+return String(title||"").replace(/\s*\((tiktok|ig|instagram|fb|facebook|yt|youtube|li|linkedin)\)\s*$/i,"").trim();
+}
+function platformIconHtml(post){
+var key=detectPlatform(post);
+var icon=key?PLATFORM_ICONS[key]:null;
+if(!icon)return"";
+return '<span class="post-platform-icon" style="background:'+icon.bg+'" title="'+key+'">'+icon.svg+'</span>';
+}
 document.getElementById("modalClose").addEventListener("click",closeModal);
 document.getElementById("modalBackdrop").addEventListener("click",function(e){if(e.target===e.currentTarget)closeModal();});
 document.getElementById("clientSearchInput").addEventListener("input",function(e){filterModalRecords(e.target.value);});
