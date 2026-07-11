@@ -109,6 +109,15 @@ so it needs its own darker stops rather than sharing the dark version. */
 .summary-item-label{display:block;font-size:10.5px;color:rgba(255,255,255,.6);margin-top:1px;font-weight:600;}
 .summary-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;position:relative;z-index:1;}
 .summary-link{font-size:12px;font-weight:600;color:#c7d2fe;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:8px 13px;border-radius:999px;text-decoration:none;transition:background .15s ease;}
+/* Themed (not fixed-dark) since it sits among the regular stat cards on the
+Dashboard tab, not inside the always-dark hero cards. */
+.chronic-card{background:var(--card);border:1px solid #f59e0b55;border-left:3px solid #f59e0b;border-radius:14px;padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow);transition:background-color .4s ease,border-color .4s ease;}
+.chronic-head{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink);}
+.chronic-sub{margin:4px 0 12px;font-size:12px;color:var(--muted);}
+.chronic-list{display:flex;flex-wrap:wrap;gap:8px;}
+.chronic-chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:#92400e;background:#fef3c7;padding:6px 12px;border-radius:999px;border:none;cursor:pointer;font-family:inherit;}
+.chronic-chip:hover{background:#fde68a;}
+.chronic-chip .streak{font-weight:800;}
 .summary-link:hover{background:rgba(255,255,255,.17);}
 .topperf-card{position:relative;overflow:hidden;background:linear-gradient(135deg,#161116 0%,#1c1712 55%,#241c10 100%);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:26px 28px;box-shadow:0 20px 50px rgba(0,0,0,.5);color:#fff;margin-bottom:24px;}
 .topperf-card::before{content:"";position:absolute;top:-70px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(251,191,36,.25),transparent 70%);pointer-events:none;}
@@ -161,6 +170,9 @@ table view, so it should look native in whichever theme the page is in. */
 .leaderboard-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
 .leaderboard-sort-toggle{font-size:12.5px;font-weight:700;font-family:inherit;color:var(--ink);background:var(--card-alt);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s,background-color .3s ease,color .3s ease;white-space:nowrap;}
 .leaderboard-sort-toggle:hover{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);}
+.leaderboard-filter-select{font-size:12.5px;font-weight:700;font-family:inherit;color:var(--ink);background:var(--card-alt);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s,background-color .3s ease,color .3s ease;}
+.leaderboard-filter-select:hover{border-color:#6366f1;}
+.leaderboard-filter-select:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);}
 .leaderboard-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;}
 .leaderboard-table{width:100%;min-width:720px;border-collapse:collapse;font-size:13px;table-layout:fixed;}
 .leaderboard-table thead th{text-align:left;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:11px 14px;background:var(--card-alt);border-bottom:1px solid var(--border);white-space:nowrap;}
@@ -302,6 +314,25 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 @media (max-width:480px){.tabs{width:100%;}.tab-btn{flex:1;padding:9px 10px;}}
 @media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}.stat-strip{grid-template-columns:1fr;}.summary-grid{grid-template-columns:1fr 1fr;}}
 
+/* Print report — hidden on screen entirely; only exists to be isolated and
+shown when window.print() fires. Plain black-on-white regardless of the
+page's own theme, since it's meant to be printed or saved as a PDF. */
+.print-report{display:none;}
+@media print{
+body>*:not(.print-report){display:none!important;}
+.print-report{display:block!important;background:#fff;color:#111;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.print-report-header h1{font-size:19px;font-weight:800;margin:0 0 2px;}
+.print-report-header p{font-size:12px;color:#555;margin:0 0 18px;}
+.print-report h2{font-size:14px;font-weight:700;margin:22px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px;}
+.print-report table{width:100%;border-collapse:collapse;font-size:11.5px;}
+.print-report th,.print-report td{border:1px solid #ccc;padding:6px 8px;text-align:left;}
+.print-report th{background:#f3f4f6;font-weight:700;}
+.print-report .print-topperf-group{margin-bottom:10px;}
+.print-report .print-topperf-group-title{font-size:12.5px;font-weight:700;margin:0 0 4px;}
+.print-report .print-topperf-row{font-size:11.5px;padding:2px 0;}
+.print-report-footer{margin-top:24px;font-size:10.5px;color:#888;}
+}
+
 /* Light-mode text-contrast fixes — a handful of pill/badge labels were
 tuned as pale text over a dark card and need a darker shade of the same
 color once that card turns white/near-white. Backgrounds are left as-is
@@ -380,6 +411,13 @@ delay for an entrance rather than everything popping in at once. */
 <polyline points="21 3 21 9 15 9"></polyline>
 </svg>
 </button>
+<button type="button" class="refresh-btn" id="printReportBtn" title="Print weekly report" aria-label="Print weekly report">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+<polyline points="6 9 6 2 18 2 18 9"></polyline>
+<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+<rect x="6" y="14" width="12" height="8"></rect>
+</svg>
+</button>
 </div>
 </div>
 <div class="page">
@@ -412,6 +450,11 @@ delay for an entrance rather than everything popping in at once. */
 <a class="summary-link" href="https://app.notion.com/p/editozclub/507ca77b02454fb5bb87150b93f31910?v=374b6494fc1481d7b6b7000c3e379310" target="_blank" rel="noopener noreferrer">🎨 Weekly Creative Flagged Project List</a>
 <a class="summary-link" href="https://app.notion.com/p/editozclub/507ca77b02454fb5bb87150b93f31910?v=374b6494fc148118b5e9000c20d2f834" target="_blank" rel="noopener noreferrer">⚙️ Weekly Operational Flagged Project List</a>
 </div>
+</div>
+<div class="chronic-card" id="chronicCard" style="display:none;">
+<div class="chronic-head"><span class="chronic-icon">🔁</span><span>Chronic Flags</span></div>
+<p class="chronic-sub">Flagged 2+ weeks in a row — these need a closer look.</p>
+<div class="chronic-list" id="chronicList"></div>
 </div>
 <p class="stat-strip-week-label" id="statPrimaryLabel" style="display:none;"></p>
 <div class="stat-strip">
@@ -507,6 +550,8 @@ delay for an entrance rather than everything popping in at once. */
 <button type="button" class="leaderboard-sort-toggle" id="leaderboardExportBtn">
 <span>⤓ Export CSV</span>
 </button>
+<select class="leaderboard-filter-select" id="leaderboardPodFilter"><option value="">All Pods</option></select>
+<select class="leaderboard-filter-select" id="leaderboardPoFilter"><option value="">All Product Owners</option></select>
 </div>
 <div class="leaderboard-table-wrap">
 <table class="leaderboard-table">
@@ -569,6 +614,20 @@ delay for an entrance rather than everything popping in at once. */
 </table>
 </div>
 </div>
+</div>
+
+<div class="print-report" id="printReport">
+<div class="print-report-header">
+<h1>editoz.club — Flag Trends Weekly Report</h1>
+<p id="printReportWeek"></p>
+</div>
+<h2>Weekly Summary</h2>
+<table id="printSummaryTable"></table>
+<h2>Top Performers</h2>
+<div id="printTopPerformers"></div>
+<h2>Leaderboard (Top 10 by Max Post Views)</h2>
+<table id="printLeaderboardTable"></table>
+<p class="print-report-footer">Generated from the Editoz Flag Trends Dashboard.</p>
 </div>
 <script>
 function ordinal(n){var s=["th","st","nd","rd"];var v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
@@ -829,6 +888,49 @@ document.getElementById("summaryBoth").textContent=c.both;
 document.getElementById("summaryUnique").textContent=c.unique;
 document.getElementById("summaryClean").textContent=c.clean;
 }
+
+// Clients flagged (execution or creative, either counts) in the current
+// week AND the week(s) directly before it, matched by base name since the
+// exact title changes weekly. Walks backward until the streak breaks, so a
+// client flagged 3 weeks running shows "3", not just "yes/no".
+function computeChronicFlags(){
+var idx=weekLabels.length-1;
+if(idx<=0)return [];
+var currentRecords=recordsByWeek[idx]||[];
+var flaggedNow=currentRecords.filter(function(r){return r.executionFlag||r.creativeFlag;});
+var results=[];
+flaggedNow.forEach(function(r){
+var baseName=clientBaseName(r.title);
+var streak=1;
+for(var w=idx-1;w>=0;w--){
+var records=recordsByWeek[w]||[];
+var match=null;
+for(var i=0;i<records.length;i++){
+if(clientBaseName(records[i].title)===baseName){match=records[i];break;}
+}
+if(match&&(match.executionFlag||match.creativeFlag))streak++;
+else break;
+}
+if(streak>=2)results.push({title:r.title,baseName:baseName,streak:streak});
+});
+results.sort(function(a,b){return b.streak-a.streak;});
+return results;
+}
+function populateChronicCard(){
+var card=document.getElementById("chronicCard");
+var list=document.getElementById("chronicList");
+if(!card||!list)return;
+var results=computeChronicFlags();
+if(!results.length){card.style.display="none";return;}
+card.style.display="block";
+list.innerHTML=results.map(function(r){
+return '<button type="button" class="chronic-chip" data-client="'+escapeAttr(r.baseName)+'">'+escapeHtml(r.baseName)+' <span class="streak">— '+r.streak+' weeks</span></button>';
+}).join("");
+}
+document.addEventListener("click",function(e){
+var chip=e.target.closest(".chronic-chip");
+if(chip)openClientHistory(chip.getAttribute("data-client"));
+});
 
 function buildSummaryText(){
 var c=summaryCounts();
@@ -1124,9 +1226,39 @@ var records=(recordsByWeek[weekIdx]||[]).filter(function(r){return typeof r.maxP
 records.sort(function(a,b){return b.maxPostViews-a.maxPostViews;});
 return records;
 }
+function uniqueSorted(arr){
+var seen={};
+var out=[];
+arr.forEach(function(v){if(v&&!seen[v]){seen[v]=true;out.push(v);}});
+out.sort();
+return out;
+}
+// Options come from this week's ranked rows only (not every week ever),
+// since a Pod/PO filter should reflect who's actually on the board right
+// now. Preserves the current selection across week switches when it's
+// still a valid option for the new week.
+function populateLeaderboardFilterMenus(weekIdx){
+var podSel=document.getElementById("leaderboardPodFilter");
+var poSel=document.getElementById("leaderboardPoFilter");
+if(!podSel||!poSel)return;
+var ranked=weekIdx>=0?rankedRecordsForWeek(weekIdx):[];
+var pods=uniqueSorted(ranked.map(function(r){return r.pod;}));
+var pos=uniqueSorted(ranked.map(function(r){return r.po;}));
+var prevPod=podSel.value,prevPo=poSel.value;
+podSel.innerHTML='<option value="">All Pods</option>'+pods.map(function(p){return '<option value="'+escapeAttr(p)+'">'+escapeHtml(p)+'</option>';}).join("");
+poSel.innerHTML='<option value="">All Product Owners</option>'+pos.map(function(p){return '<option value="'+escapeAttr(p)+'">'+escapeHtml(p)+'</option>';}).join("");
+if(pods.indexOf(prevPod)!==-1)podSel.value=prevPod;
+if(pos.indexOf(prevPo)!==-1)poSel.value=prevPo;
+}
 function buildLeaderboardRows(weekIdx){
 if(weekIdx<0||weekIdx==null)return [];
 var rows=rankedRecordsForWeek(weekIdx).slice();
+var podSel=document.getElementById("leaderboardPodFilter");
+var poSel=document.getElementById("leaderboardPoFilter");
+var podVal=podSel?podSel.value:"";
+var poVal=poSel?poSel.value:"";
+if(podVal)rows=rows.filter(function(r){return r.pod===podVal;});
+if(poVal)rows=rows.filter(function(r){return r.po===poVal;});
 if(!leaderboardSortDesc)rows.reverse();
 return rows;
 }
@@ -1201,6 +1333,7 @@ function populateLeaderboard(){
 var idx=currentLeaderboardWeekIndex();
 var labelEl=document.getElementById("leaderboardWeekLabel");
 if(labelEl)labelEl.textContent=idx>=0?weekLabels[idx]:"–";
+populateLeaderboardFilterMenus(idx);
 var rankedForMovement=rankedRecordsForWeek(idx);
 var rows=buildLeaderboardRows(idx);
 var body=document.getElementById("leaderboardBody");
@@ -1289,6 +1422,8 @@ document.getElementById("leaderboardSortToggleText").textContent=leaderboardSort
 populateLeaderboard();
 });
 document.getElementById("leaderboardExportBtn").addEventListener("click",downloadLeaderboardCsv);
+document.getElementById("leaderboardPodFilter").addEventListener("change",populateLeaderboard);
+document.getElementById("leaderboardPoFilter").addEventListener("change",populateLeaderboard);
 
 // ---- Per-client history: click any client name to see every week they've
 // been audited, matched by base name (same trick as rank movement above)
@@ -1443,6 +1578,7 @@ weekLabels=data.weeks.map(function(w,i){return formatAuditLabel(i,w,(data.weekEn
 apiData=data;
 updateLastUpdated();
 populateSummaryCard();
+populateChronicCard();
 populateTopPerfWeekMenu();
 populateTopPerformers();
 populateLeaderboardWeekMenu();
@@ -1653,6 +1789,58 @@ if(btn.classList.contains("spinning"))return;
 btn.classList.add("spinning");
 var minSpin=new Promise(function(resolve){setTimeout(resolve,600);});
 Promise.all([loadData(),minSpin]).then(function(){btn.classList.remove("spinning");});
+});
+
+// ---- Printable weekly report — always built from the latest/current week
+// regardless of whatever week happens to be selected elsewhere on the page,
+// so it's predictable: "print report" always means "this week's snapshot."
+function buildPrintReport(){
+var idx=weekLabels.length-1;
+var weekEl=document.getElementById("printReportWeek");
+if(weekEl)weekEl.textContent=idx>=0?weekLabels[idx]+" — generated "+new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}):"No data available";
+
+var c=summaryCounts();
+var summaryTable=document.getElementById("printSummaryTable");
+if(summaryTable){
+summaryTable.innerHTML="<tr><th>Total Audited</th><th>Creative Flags</th><th>Execution Flags</th><th>Both Flagged</th><th>Unique Flagged</th><th>Clean</th></tr>"+
+"<tr><td>"+c.total+"</td><td>"+c.creative+"</td><td>"+c.execution+"</td><td>"+c.both+"</td><td>"+c.unique+"</td><td>"+c.clean+"</td></tr>";
+}
+
+var topPerfEl=document.getElementById("printTopPerformers");
+if(topPerfEl){
+var savedTopPerfIdx=selectedTopPerfWeekIndex;
+selectedTopPerfWeekIndex=null; // force "current week" for the report
+var tpData=buildTopPerformersData();
+selectedTopPerfWeekIndex=savedTopPerfIdx;
+if(tpData){
+topPerfEl.innerHTML=tpData.groups.map(function(g){
+var rows=g.entries.length?g.entries.map(function(e,i){
+return '<div class="print-topperf-row">'+MEDALS[i]+' '+escapeHtml(e.client)+' — '+numberWithCommas(e.views)+' views (PO: '+escapeHtml(e.po||"Unassigned")+')</div>';
+}).join(""):'<div class="print-topperf-row">No categorized posts this week.</div>';
+return '<div class="print-topperf-group"><p class="print-topperf-group-title">'+escapeHtml(g.category.toUpperCase())+'</p>'+rows+'</div>';
+}).join("");
+}else{
+topPerfEl.innerHTML="<p>No data available.</p>";
+}
+}
+
+var lbTable=document.getElementById("printLeaderboardTable");
+if(lbTable){
+var savedLbIdx=selectedLeaderboardWeekIndex;
+selectedLeaderboardWeekIndex=null; // force "current week" for the report
+var lbRows=rankedRecordsForWeek(idx).slice(0,10);
+selectedLeaderboardWeekIndex=savedLbIdx;
+var lbHtml="<tr><th>#</th><th>Client</th><th>Best Post</th><th>Max Views</th><th>PO</th><th>Pod</th></tr>";
+lbRows.forEach(function(r,i){
+lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.title)+"</td><td>"+escapeHtml(r.bestPostTitle||"—")+"</td><td>"+numberWithCommas(r.maxPostViews)+"</td><td>"+escapeHtml(r.po||"Unassigned")+"</td><td>"+escapeHtml(r.pod||"—")+"</td></tr>";
+});
+if(!lbRows.length)lbHtml+="<tr><td colspan=\"6\">No ranked posts this week.</td></tr>";
+lbTable.innerHTML=lbHtml;
+}
+}
+document.getElementById("printReportBtn").addEventListener("click",function(){
+buildPrintReport();
+window.print();
 });
 document.getElementById("themeToggleBtn").addEventListener("click",function(){
 var current=document.documentElement.getAttribute("data-theme");
