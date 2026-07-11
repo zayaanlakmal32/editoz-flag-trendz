@@ -149,12 +149,25 @@ table view, so it should look native in whichever theme the page is in. */
 .leaderboard-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;}
 .leaderboard-table{width:100%;min-width:720px;border-collapse:collapse;font-size:13px;table-layout:fixed;}
 .leaderboard-table thead th{text-align:left;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:11px 14px;background:var(--card-alt);border-bottom:1px solid var(--border);white-space:nowrap;}
-.leaderboard-table thead th:nth-child(1){width:20%;}
-.leaderboard-table thead th:nth-child(2){width:32%;}
-.leaderboard-table thead th:nth-child(3){width:16%;}
-.leaderboard-table thead th:nth-child(4){width:16%;}
-.leaderboard-table thead th:nth-child(5){width:16%;}
+.leaderboard-table thead th:nth-child(1){width:18%;}
+.leaderboard-table thead th:nth-child(2){width:7%;}
+.leaderboard-table thead th:nth-child(3){width:27%;}
+.leaderboard-table thead th:nth-child(4){width:14%;}
+.leaderboard-table thead th:nth-child(5){width:17%;}
+.leaderboard-table thead th:nth-child(6){width:17%;}
 .leaderboard-table thead th.leaderboard-col-num{text-align:right;}
+.leaderboard-table thead th.leaderboard-col-move{text-align:center;}
+.leaderboard-table tbody td.leaderboard-col-move{text-align:center;}
+.leaderboard-move{display:inline-flex;align-items:center;justify-content:center;gap:2px;font-size:11.5px;font-weight:800;padding:3px 7px;border-radius:999px;white-space:nowrap;}
+.leaderboard-move.up{color:#15803d;background:#dcfce7;}
+.leaderboard-move.down{color:#991b1b;background:#fee2e2;}
+.leaderboard-move.new{color:#1d4ed8;background:#ddebff;}
+.leaderboard-move.flat{color:var(--muted);background:var(--tint-soft);}
+.leaderboard-gap-note{margin:12px 2px 0;font-size:12px;color:var(--muted);line-height:1.5;}
+.leaderboard-pill.leaderboard-pill-gap{background:#fef3c7 !important;color:#92400e !important;}
+.leaderboard-client-btn{background:none;border:none;padding:0;font:inherit;font-weight:700;color:var(--ink);cursor:pointer;text-align:left;}
+.leaderboard-client-btn:hover{color:var(--accent-text);text-decoration:underline;}
+.client-history-chart-wrap{position:relative;height:180px;background:var(--chart-wrap-bg);border:1px solid var(--border);border-radius:12px;padding:14px 12px 6px;margin-bottom:16px;}
 .leaderboard-table tbody td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
 .leaderboard-table tbody tr:last-child td{border-bottom:none;}
 .leaderboard-table tbody tr:hover td{background:var(--tint-soft);}
@@ -467,12 +480,16 @@ delay for an entrance rather than everything popping in at once. */
 <button type="button" class="leaderboard-sort-toggle" id="leaderboardSortToggle">
 <span id="leaderboardSortToggleText">↓ Best first</span>
 </button>
+<button type="button" class="leaderboard-sort-toggle" id="leaderboardExportBtn">
+<span>⤓ Export CSV</span>
+</button>
 </div>
 <div class="leaderboard-table-wrap">
 <table class="leaderboard-table">
 <thead>
 <tr>
 <th>Client</th>
+<th class="leaderboard-col-move">Δ</th>
 <th>Best post title</th>
 <th class="leaderboard-col-num">Max post views</th>
 <th>Product owner</th>
@@ -482,6 +499,7 @@ delay for an entrance rather than everything popping in at once. */
 <tbody id="leaderboardBody"></tbody>
 </table>
 </div>
+<p class="leaderboard-gap-note" id="leaderboardGapNote" style="display:none;"></p>
 </div>
 </div>
 <footer>Weekly Audit Records &middot; synced from Notion<br><span class="credit" id="copyrightLine"></span></footer>
@@ -500,6 +518,32 @@ delay for an entrance rather than everything popping in at once. */
 </div>
 </div>
 <div class="modal-body" id="modalBody"></div>
+</div>
+</div>
+
+<div class="modal-backdrop" id="clientHistoryBackdrop">
+<div class="modal">
+<div class="modal-head">
+<div><h3 id="clientHistoryTitle">Client history</h3><p id="clientHistorySubtitle"></p></div>
+<button class="modal-close" id="clientHistoryClose" aria-label="Close">&times;</button>
+</div>
+<div class="modal-body" id="clientHistoryBody">
+<div class="client-history-chart-wrap">
+<canvas id="clientHistoryChart"></canvas>
+</div>
+<table class="leaderboard-table">
+<thead>
+<tr>
+<th>Week</th>
+<th class="leaderboard-col-move">⚙️</th>
+<th class="leaderboard-col-move">🎨</th>
+<th class="leaderboard-col-num">Max views</th>
+<th>Best post</th>
+</tr>
+</thead>
+<tbody id="clientHistoryTableBody"></tbody>
+</table>
+</div>
 </div>
 </div>
 <script>
@@ -995,12 +1039,36 @@ if(byTitle)return byTitle;
 }
 return null;
 }
+// Client titles are "<Client> x <Month> <Day>, <Year>" — stripping that
+// trailing date gives a stable key to match the same client across
+// different weeks (used for both rank movement and, later, per-client
+// history), since the exact title text changes every week.
+function clientBaseName(title){
+var m=/^(.*?)\s+x\s+[A-Za-z]+\s+\d{1,2},?\s*\d{4}\s*$/i.exec(String(title||"").trim());
+return m?m[1].trim():String(title||"").trim();
+}
+// Rank is always computed best-first (highest views = rank 1) regardless of
+// the display sort toggle — "moved up 3 spots" only means something against
+// one consistent definition of rank, not whichever way the table happens to
+// be sorted at the moment.
+function rankedRecordsForWeek(weekIdx){
+var records=(recordsByWeek[weekIdx]||[]).filter(function(r){return typeof r.maxPostViews==="number";});
+records.sort(function(a,b){return b.maxPostViews-a.maxPostViews;});
+return records;
+}
 function buildLeaderboardRows(weekIdx){
 if(weekIdx<0||weekIdx==null)return [];
-var records=recordsByWeek[weekIdx]||[];
-var rows=records.filter(function(r){return typeof r.maxPostViews==="number";}).slice();
-rows.sort(function(a,b){return leaderboardSortDesc?b.maxPostViews-a.maxPostViews:a.maxPostViews-b.maxPostViews;});
+var rows=rankedRecordsForWeek(weekIdx).slice();
+if(!leaderboardSortDesc)rows.reverse();
 return rows;
+}
+// Excluded = audited that week but has no Max Post Views, so it never shows
+// up in the ranked table at all — worth surfacing so a data gap doesn't just
+// look like "everyone did great," it looks like "these clients are missing
+// data."
+function excludedLeaderboardCount(weekIdx){
+var records=recordsByWeek[weekIdx]||[];
+return records.filter(function(r){return typeof r.maxPostViews!=="number";}).length;
 }
 function currentLeaderboardWeekIndex(){
 return selectedLeaderboardWeekIndex!==null?selectedLeaderboardWeekIndex:weekLabels.length-1;
@@ -1043,20 +1111,51 @@ document.getElementById("leaderboardWeekMenu").classList.remove("open");
 document.getElementById("leaderboardWeekTrigger").classList.remove("open");
 document.getElementById("leaderboardWeekTrigger").setAttribute("aria-expanded","false");
 }
+// Compares this week's rank for a client against last week's rank for the
+// same client (matched by base name, since last week's rank is computed
+// from the week before whatever's currently selected — comparing the
+// selected week to ITS previous week, not always to "the current week").
+function leaderboardMovementBadge(weekIdx, record, rankIndex){
+if(weekIdx<=0)return '<span class="leaderboard-move flat">–</span>';
+var prevRanked=rankedRecordsForWeek(weekIdx-1);
+var baseName=clientBaseName(record.title);
+var prevRankIndex=-1;
+for(var i=0;i<prevRanked.length;i++){
+if(clientBaseName(prevRanked[i].title)===baseName){prevRankIndex=i;break;}
+}
+if(prevRankIndex===-1)return '<span class="leaderboard-move new">NEW</span>';
+var delta=prevRankIndex-rankIndex; // positive = moved up (lower index = better rank)
+if(delta>0)return '<span class="leaderboard-move up">▲'+delta+'</span>';
+if(delta<0)return '<span class="leaderboard-move down">▼'+Math.abs(delta)+'</span>';
+return '<span class="leaderboard-move flat">–</span>';
+}
 function populateLeaderboard(){
 var idx=currentLeaderboardWeekIndex();
 var labelEl=document.getElementById("leaderboardWeekLabel");
 if(labelEl)labelEl.textContent=idx>=0?weekLabels[idx]:"–";
+var rankedForMovement=rankedRecordsForWeek(idx);
 var rows=buildLeaderboardRows(idx);
 var body=document.getElementById("leaderboardBody");
+var gapNoteEl=document.getElementById("leaderboardGapNote");
 if(!body)return;
+if(gapNoteEl){
+var excluded=idx>=0?excludedLeaderboardCount(idx):0;
+if(excluded>0){
+gapNoteEl.textContent="⚠️ "+excluded+" client"+(excluded===1?"":"s")+" audited this week aren't shown here — no Max Post Views recorded in Notion.";
+gapNoteEl.style.display="block";
+}else{
+gapNoteEl.style.display="none";
+}
+}
 if(!rows.length){
-body.innerHTML='<tr><td colspan="5" class="leaderboard-empty">No ranked posts for this week yet.</td></tr>';
+body.innerHTML='<tr><td colspan="6" class="leaderboard-empty">No ranked posts for this week yet.</td></tr>';
 return;
 }
 body.innerHTML=rows.map(function(r){
 var poColor=leaderboardPillColor(r.po);
 var podColor=leaderboardPillColor(r.pod);
+var poGap=!r.po;
+var podGap=!r.pod;
 var bestPost=bestPostForRecord(r);
 var bestHtml;
 if(r.bestPostTitle&&bestPost&&bestPost.link){
@@ -1066,14 +1165,46 @@ bestHtml='<div class="leaderboard-best"><span class="leaderboard-best-link">'+es
 }else{
 bestHtml='<span class="leaderboard-dim">—</span>';
 }
+var rankIndex=rankedForMovement.indexOf(r);
+var moveHtml=rankIndex===-1?'<span class="leaderboard-move flat">–</span>':leaderboardMovementBadge(idx,r,rankIndex);
 return '<tr>'+
-'<td class="leaderboard-client">'+escapeHtml(r.title)+'</td>'+
+'<td class="leaderboard-client"><button type="button" class="leaderboard-client-btn" data-client="'+escapeAttr(clientBaseName(r.title))+'">'+escapeHtml(r.title)+'</button></td>'+
+'<td class="leaderboard-col-move">'+moveHtml+'</td>'+
 '<td>'+bestHtml+'</td>'+
 '<td class="leaderboard-views">'+numberWithCommas(r.maxPostViews)+'</td>'+
-'<td><span class="leaderboard-pill" style="background:'+poColor.bg+';color:'+poColor.text+'">'+escapeHtml(r.po||"Unassigned")+'</span></td>'+
-'<td><span class="leaderboard-pill" style="background:'+podColor.bg+';color:'+podColor.text+'">'+escapeHtml(r.pod||"—")+'</span></td>'+
+'<td><span class="leaderboard-pill'+(poGap?" leaderboard-pill-gap":"")+'" style="'+(poGap?"":"background:"+poColor.bg+";color:"+poColor.text)+'">'+(poGap?"⚠️ Unassigned":escapeHtml(r.po))+'</span></td>'+
+'<td><span class="leaderboard-pill'+(podGap?" leaderboard-pill-gap":"")+'" style="'+(podGap?"":"background:"+podColor.bg+";color:"+podColor.text)+'">'+(podGap?"⚠️ Missing":escapeHtml(r.pod))+'</span></td>'+
 '</tr>';
 }).join("");
+}
+function leaderboardCsvText(){
+var idx=currentLeaderboardWeekIndex();
+var rows=buildLeaderboardRows(idx);
+var header=["Client","Best Post Title","Max Post Views","Product Owner","Pod"];
+function csvEscape(v){
+var s=v===null||v===undefined?"":String(v);
+if(/[",\n]/.test(s))return '"'+s.replace(/"/g,'""')+'"';
+return s;
+}
+var lines=[header.map(csvEscape).join(",")];
+rows.forEach(function(r){
+lines.push([r.title,r.bestPostTitle||"",r.maxPostViews,r.po||"Unassigned",r.pod||"Missing"].map(csvEscape).join(","));
+});
+return lines.join("\n");
+}
+function downloadLeaderboardCsv(){
+var idx=currentLeaderboardWeekIndex();
+var text=leaderboardCsvText();
+var blob=new Blob([text],{type:"text/csv;charset=utf-8;"});
+var url=URL.createObjectURL(blob);
+var a=document.createElement("a");
+var safeWeek=(idx>=0?weekLabels[idx]:"leaderboard").replace(/[^a-z0-9]+/gi,"-").toLowerCase();
+a.href=url;
+a.download="editoz-leaderboard-"+safeWeek+".csv";
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
 document.getElementById("leaderboardWeekTrigger").addEventListener("click",function(e){
 e.stopPropagation();
@@ -1089,6 +1220,107 @@ leaderboardSortDesc=!leaderboardSortDesc;
 document.getElementById("leaderboardSortToggleText").textContent=leaderboardSortDesc?"↓ Best first":"↑ Worst first";
 populateLeaderboard();
 });
+document.getElementById("leaderboardExportBtn").addEventListener("click",downloadLeaderboardCsv);
+
+// ---- Per-client history: click any client name to see every week they've
+// been audited, matched by base name (same trick as rank movement above)
+// since the exact title differs week to week. Works from any week that's
+// currently on screen, and pulls every week on record for that client, not
+// just the ones near whatever week happens to be selected.
+var clientHistoryChartObj=null;
+function buildClientHistoryRows(baseName){
+var rows=[];
+for(var i=0;i<recordsByWeek.length;i++){
+var records=recordsByWeek[i]||[];
+for(var j=0;j<records.length;j++){
+if(clientBaseName(records[j].title)===baseName){
+rows.push({weekIdx:i,weekLabel:weekLabels[i],record:records[j]});
+break;
+}
+}
+}
+return rows;
+}
+function closeClientHistory(){
+document.getElementById("clientHistoryBackdrop").classList.remove("visible");
+}
+function openClientHistory(baseName){
+var rows=buildClientHistoryRows(baseName);
+document.getElementById("clientHistoryTitle").textContent=baseName;
+document.getElementById("clientHistorySubtitle").textContent=rows.length+" audited week"+(rows.length===1?"":"s")+" on record";
+var tbody=document.getElementById("clientHistoryTableBody");
+if(!rows.length){
+tbody.innerHTML='<tr><td colspan="5" class="leaderboard-empty">No history found for this client.</td></tr>';
+}else{
+// Newest first in the table (matches the rest of the dashboard's
+// convention), but the chart below reads oldest→newest since that's
+// the natural left-to-right direction for a trend line.
+var newestFirst=rows.slice().reverse();
+tbody.innerHTML=newestFirst.map(function(row){
+var r=row.record;
+var bestPost=bestPostForRecord(r);
+var bestHtml;
+if(r.bestPostTitle&&bestPost&&bestPost.link){
+bestHtml='<div class="leaderboard-best">'+platformIconHtml(bestPost)+'<a class="leaderboard-best-link" href="'+escapeAttr(bestPost.link)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(stripPlatformSuffix(r.bestPostTitle))+'</a></div>';
+}else if(r.bestPostTitle){
+bestHtml='<div class="leaderboard-best"><span class="leaderboard-best-link">'+escapeHtml(stripPlatformSuffix(r.bestPostTitle))+'</span></div>';
+}else{
+bestHtml='<span class="leaderboard-dim">—</span>';
+}
+return '<tr>'+
+'<td class="leaderboard-client">'+escapeHtml(row.weekLabel)+'</td>'+
+'<td class="leaderboard-col-move">'+(r.executionFlag?'<span class="leaderboard-move down">●</span>':'<span class="leaderboard-move flat">–</span>')+'</td>'+
+'<td class="leaderboard-col-move">'+(r.creativeFlag?'<span class="leaderboard-move down">●</span>':'<span class="leaderboard-move flat">–</span>')+'</td>'+
+'<td class="leaderboard-views">'+(typeof r.maxPostViews==="number"?numberWithCommas(r.maxPostViews):'<span class="leaderboard-dim">—</span>')+'</td>'+
+'<td>'+bestHtml+'</td>'+
+'</tr>';
+}).join("");
+}
+if(clientHistoryChartObj){clientHistoryChartObj.destroy();clientHistoryChartObj=null;}
+var chartRows=rows.filter(function(row){return typeof row.record.maxPostViews==="number";});
+if(chartRows.length){
+var canvas=document.getElementById("clientHistoryChart");
+var ctx=canvas.getContext("2d");
+clientHistoryChartObj=new Chart(ctx,{
+type:"line",
+data:{
+labels:chartRows.map(function(row){return row.weekLabel;}),
+datasets:[{
+label:"Max post views",
+data:chartRows.map(function(row){return row.record.maxPostViews;}),
+borderColor:"#0d9488",
+backgroundColor:function(context){
+var chart=context.chart,chartArea=chart.chartArea;
+if(!chartArea)return "rgba(13,148,136,.15)";
+return makeGradient(chart.ctx,chartArea,"rgba(13,148,136,.32)","rgba(13,148,136,.02)");
+},
+fill:true,
+tension:.35,
+cubicInterpolationMode:"monotone",
+borderWidth:3,
+pointRadius:4,
+pointBackgroundColor:"#0d9488",
+pointBorderColor:"#fff",
+pointBorderWidth:2
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+animation:{duration:500},
+plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161aee",titleColor:"#5eead4",titleFont:{size:11,weight:"700"},bodyFont:{size:12.5,weight:"600"},padding:12,cornerRadius:10,displayColors:false,callbacks:{label:function(item){return numberWithCommas(item.raw)+" views";}}}},
+scales:{y:{beginAtZero:true,border:{display:false},ticks:{precision:0,color:isLightTheme()?"#7c8496":"#7b8290",font:{size:11}},grid:{color:isLightTheme()?"rgba(15,23,42,.07)":"rgba(255,255,255,.06)"}},x:{border:{display:false},ticks:{color:isLightTheme()?"#3f4658":"#c3c9d3",font:{size:11,weight:"700"}},grid:{display:false}}}
+}
+});
+}
+document.getElementById("clientHistoryBackdrop").classList.add("visible");
+}
+document.addEventListener("click",function(e){
+var btn=e.target.closest(".leaderboard-client-btn");
+if(btn)openClientHistory(btn.getAttribute("data-client"));
+});
+document.getElementById("clientHistoryClose").addEventListener("click",closeClientHistory);
+document.getElementById("clientHistoryBackdrop").addEventListener("click",function(e){if(e.target===e.currentTarget)closeClientHistory();});
 
 function buildTopPerformersSlackText(){
 var data=buildTopPerformersData();
