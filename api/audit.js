@@ -1,7 +1,7 @@
 // api/audit.js
 // Vercel serverless function (Node.js, ESM) that queries the "Weekly Audit
-// Records" Notion database and returns flag counts + per-record detail for
-// the last 3 weeks.
+// Records" Notion database and returns flag counts + structured per-record
+// detail (tracked posts, tags, notes, links) for the last 3 weeks.
 
 const NOTION_VERSION = "2022-06-28";
 const DATABASE_ID = "507ca77b-0245-4fb5-bb87-150b93f31910";
@@ -9,39 +9,113 @@ const WEEK_PROPERTY = "Week Of";
 const EXECUTION_PROPERTY = "⚙️ Flag Execution";
 const CREATIVE_PROPERTY = "🎨 Flag Creative";
 
-// Reads a Notion property value generically, regardless of its type, so we
-// don't have to hardcode every column name in the database.
-function readProp(prop) {
-  if (!prop) return null;
-  switch (prop.type) {
-    case "rich_text":
-      return prop.rich_text.map((t) => t.plain_text).join("") || null;
-    case "select":
-      return prop.select ? prop.select.name : null;
-    case "multi_select":
-      return prop.multi_select.map((s) => s.name).join(", ") || null;
-    case "people":
-      return prop.people.map((p) => p.name || "Unknown").join(", ") || null;
-    case "status":
-      return prop.status ? prop.status.name : null;
-    case "checkbox":
-      return prop.checkbox ? "Yes" : "No";
-    case "date":
-      return prop.date ? prop.date.start : null;
-    case "number":
-      return prop.number;
-    case "url":
-      return prop.url;
-    case "email":
-      return prop.email;
-    case "phone_number":
-      return prop.phone_number;
-    case "formula":
-      if (!prop.formula) return null;
-      return prop.formula.string ?? prop.formula.number ?? prop.formula.boolean ?? null;
-    default:
-      return null;
+// Each audit record tracks up to 6 posts: "Top Post 1-3" and
+// "Bottom Post 1-3", each with its own Format / Link / Title / Views.
+const POST_SECTIONS = ["Top", "Bottom"];
+const POST_SLOTS = 3;
+const postPropertyNames = new Set();
+for (const section of POST_SECTIONS) {
+  for (let i = 1; i <= POST_SLOTS; i++) {
+    postPropertyNames.add(`${section} Post ${i} Format`);
+    postPropertyNames.add(`${section} Post ${i} Link`);
+    postPropertyNames.add(`${section} Post ${i} Title`);
+    postPropertyNames.add(`${section} Post ${i} Views`);
   }
+}
+
+function notionPageUrl(id) {
+  return `https://www.notion.so/${String(id).replace(/-/g, "")}`;
+}
+
+function extractPosts(props) {
+  const posts = [];
+  for (const section of POST_SECTIONS) {
+    for (let i = 1; i <= POST_SLOTS; i++) {
+      const titleProp = props[`${section} Post ${i} Title`];
+      const title = titleProp?.rich_text?.map((t) => t.plain_text).join("") || "";
+      if (!title) continue;
+      const linkProp = props[`${section} Post ${i} Link`];
+      const formatProp = props[`${section} Post ${i} Format`];
+      const viewsProp = props[`${section} Post ${i} Views`];
+      posts.push({
+        section,
+        index: i,
+        title,
+        link: linkProp?.url || null,
+        format: formatProp?.select?.name || null,
+        views: typeof viewsProp?.number === "number" ? viewsProp.number : null,
+      });
+    }
+  }
+  return posts;
+}
+
+// Classifies every remaining (non-post, non-flag, non-week, non-title)
+// property into short tags, long-form notes, or external links, based on
+// its actual Notion property type.
+function extractMeta(props) {
+  const tags = [];
+  const notes = [];
+  const links = [];
+
+  for (const key in props) {
+    if (key === WEEK_PROPERTY || key === EXECUTION_PROPERTY || key === CREATIVE_PROPERTY) continue;
+    if (postPropertyNames.has(key)) continue;
+    const prop = props[key];
+    if (!prop || prop.type === "title") continue;
+
+    switch (prop.type) {
+      case "url":
+        if (prop.url) links.push({ label: key, url: prop.url });
+        break;
+      case "relation":
+        (prop.relation || []).forEach((r, idx) => {
+          links.push({
+            label: key + (prop.relation.length > 1 ? ` ${idx + 1}` : ""),
+            url: notionPageUrl(r.id),
+          });
+        });
+        break;
+      case "rich_text": {
+        const text = prop.rich_text.map((t) => t.plain_text).join("");
+        if (text) notes.push({ label: key, value: text });
+        break;
+      }
+      case "select":
+        if (prop.select) tags.push(prop.select.name);
+        break;
+      case "status":
+        if (prop.status) tags.push(prop.status.name);
+        break;
+      case "multi_select":
+        if (prop.multi_select.length) tags.push(prop.multi_select.map((s) => s.name).join(", "));
+        break;
+      case "checkbox":
+        tags.push(`${key}: ${prop.checkbox ? "Yes" : "No"}`);
+        break;
+      case "number":
+        if (prop.number !== null && prop.number !== undefined) tags.push(`${key}: ${prop.number.toLocaleString()}`);
+        break;
+      case "people":
+        if (prop.people.length) tags.push(prop.people.map((p) => p.name || "Unknown").join(", "));
+        break;
+      case "date":
+        if (prop.date?.start) tags.push(prop.date.start);
+        break;
+      case "formula": {
+        if (!prop.formula) break;
+        let v = null;
+        if (typeof prop.formula.string === "string") v = prop.formula.string;
+        else if (typeof prop.formula.number === "number") v = String(prop.formula.number);
+        else if (typeof prop.formula.boolean === "boolean") v = prop.formula.boolean ? "Yes" : "No";
+        if (v) tags.push(v);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  return { tags, notes, links };
 }
 
 export default async function handler(req, res) {
@@ -81,17 +155,27 @@ export default async function handler(req, res) {
       });
     }
 
-    // Group rows by "Week Of" date value.
+    // Group rows by "Week Of" start date. "Week Of" is a real Notion date
+    // *range* (start + end) — we use the actual end date rather than
+    // assuming a fixed 7-day span.
     const weekMap = new Map();
     for (const page of notionBody.results) {
       const props = page.properties;
-      const weekDate = props[WEEK_PROPERTY]?.date?.start;
-      if (!weekDate) continue;
+      const weekDate = props[WEEK_PROPERTY]?.date;
+      const weekStart = weekDate?.start;
+      if (!weekStart) continue;
 
-      if (!weekMap.has(weekDate)) {
-        weekMap.set(weekDate, { execution: 0, creative: 0, total: 0, records: [] });
+      if (!weekMap.has(weekStart)) {
+        weekMap.set(weekStart, {
+          end: weekDate.end || null,
+          execution: 0,
+          creative: 0,
+          total: 0,
+          records: [],
+        });
       }
-      const bucket = weekMap.get(weekDate);
+      const bucket = weekMap.get(weekStart);
+      if (!bucket.end && weekDate.end) bucket.end = weekDate.end;
       bucket.total += 1;
 
       const executionFlag = !!props[EXECUTION_PROPERTY]?.checkbox;
@@ -99,7 +183,6 @@ export default async function handler(req, res) {
       if (executionFlag) bucket.execution += 1;
       if (creativeFlag) bucket.creative += 1;
 
-      // Find the title property for a display name, whatever it's called.
       let title = "Untitled";
       for (const key in props) {
         if (props[key].type === "title") {
@@ -109,16 +192,10 @@ export default async function handler(req, res) {
         }
       }
 
-      // Everything else (besides title/week/flags) becomes generic metadata.
-      const meta = {};
-      for (const key in props) {
-        if (key === WEEK_PROPERTY || key === EXECUTION_PROPERTY || key === CREATIVE_PROPERTY) continue;
-        if (props[key].type === "title") continue;
-        const value = readProp(props[key]);
-        if (value !== null && value !== undefined && value !== "") meta[key] = value;
-      }
+      const posts = extractPosts(props);
+      const { tags, notes, links } = extractMeta(props);
 
-      bucket.records.push({ title, meta, executionFlag, creativeFlag });
+      bucket.records.push({ title, executionFlag, creativeFlag, posts, tags, notes, links });
     }
 
     // Last 3 distinct weeks, oldest → newest for chart display.
@@ -126,6 +203,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       weeks,
+      weekEnds: weeks.map((w) => weekMap.get(w).end),
       executionFlags: weeks.map((w) => weekMap.get(w).execution),
       creativeFlags: weeks.map((w) => weekMap.get(w).creative),
       totalRecords: weeks.map((w) => weekMap.get(w).total),
