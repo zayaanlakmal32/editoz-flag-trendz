@@ -194,7 +194,10 @@ async function fetchProjectTrackerMap(token) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate");
+  // No caching — this dashboard needs to reflect Notion edits immediately
+  // (the whole point of the refresh button), so every request hits Notion
+  // live rather than serving a stale response from Vercel's edge cache.
+  res.setHeader("Cache-Control", "no-store, max-age=0");
 
   const token = process.env.NOTION_TOKEN;
   if (!token) {
