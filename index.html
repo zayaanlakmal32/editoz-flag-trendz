@@ -56,6 +56,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 @keyframes shimmer{0%{background-position:100% 0;}100%{background-position:-100% 0;}}
 .stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:10px;}
 .stat-strip-caption{font-size:11.5px;color:#9ca3af;margin:0 0 24px;text-align:center;}
+.stat-strip-week-label{font-size:12px;font-weight:700;color:#4f46e5;margin:0 0 8px 2px;text-transform:uppercase;letter-spacing:.03em;}
+#compareStatGroup{margin-top:4px;margin-bottom:24px;}
 .stat{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:13px;transition:transform .18s ease,box-shadow .18s ease;}
 .stat:hover{transform:translateY(-3px);box-shadow:0 2px 6px rgba(16,24,40,.07),0 16px 32px rgba(16,24,40,.10);}
 .stat-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:#eef1f5;}
@@ -140,12 +142,21 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="select-wrap"><select id="olderWeeksSelect"><option value="">Select a week…</option></select></div>
 <button type="button" class="reset-chip" id="resetCompare">✕ Back to last 3 weeks</button>
 </div>
+<p class="stat-strip-week-label" id="statPrimaryLabel" style="display:none;"></p>
 <div class="stat-strip">
 <div class="stat stat-neutral"><div class="stat-icon">📋</div><div class="stat-text"><span class="stat-value" id="statTotal">–</span><span class="stat-label">Records Audited</span></div></div>
 <div class="stat stat-execution"><div class="stat-icon">⚙️</div><div class="stat-text"><span class="stat-value" id="statExecution">–</span><span class="stat-label">Execution Flags</span></div></div>
 <div class="stat stat-creative"><div class="stat-icon">🎨</div><div class="stat-text"><span class="stat-value" id="statCreative">–</span><span class="stat-label">Creative Flags</span></div></div>
 </div>
 <p class="stat-strip-caption" id="statCaption">Totals across every audit week on record — grows automatically as new weeks are added.</p>
+<div id="compareStatGroup" style="display:none;">
+<p class="stat-strip-week-label" id="compareStatLabel"></p>
+<div class="stat-strip">
+<div class="stat stat-neutral"><div class="stat-icon">📋</div><div class="stat-text"><span class="stat-value" id="statTotalCompare">–</span><span class="stat-label">Records Audited</span></div></div>
+<div class="stat stat-execution"><div class="stat-icon">⚙️</div><div class="stat-text"><span class="stat-value" id="statExecutionCompare">–</span><span class="stat-label">Execution Flags</span></div></div>
+<div class="stat stat-creative"><div class="stat-icon">🎨</div><div class="stat-text"><span class="stat-value" id="statCreativeCompare">–</span><span class="stat-label">Creative Flags</span></div></div>
+</div>
+</div>
 <div class="chart-card chart-card-wide">
 <div class="chart-card-head"><h2>📊 Overall Audits</h2><span id="auditsTrend"></span></div>
 <div class="chart-wrap">
@@ -415,17 +426,32 @@ var chartCreative=indices.map(function(i){return apiData.creativeFlags[i];});
 var chartTotals=indices.map(function(i){return (apiData.totalRecords||[])[i]||0;});
 
 // Unfiltered: stat cards show the all-time grand total. Once a comparison
-// week is selected, they narrow down to just the weeks being compared.
+// week is selected, the top cards switch to the current week's own numbers
+// and a second row appears below showing the selected older week's own
+// numbers — each week's individual totals, not summed together.
 var captionEl=document.getElementById("statCaption");
+var primaryLabelEl=document.getElementById("statPrimaryLabel");
+var compareGroupEl=document.getElementById("compareStatGroup");
+var compareLabelEl=document.getElementById("compareStatLabel");
 if(isComparison){
-document.getElementById("statTotal").textContent=chartTotals.reduce(function(a,b){return a+b;},0);
-document.getElementById("statExecution").textContent=chartExecution.reduce(function(a,b){return a+b;},0);
-document.getElementById("statCreative").textContent=chartCreative.reduce(function(a,b){return a+b;},0);
-if(captionEl)captionEl.textContent="Totals for the "+indices.length+" week"+(indices.length===1?"":"s")+" currently being compared.";
+var currentIdx=indices[indices.length-1];
+var selectedIdx=indices[0];
+document.getElementById("statTotal").textContent=(apiData.totalRecords||[])[currentIdx]||0;
+document.getElementById("statExecution").textContent=apiData.executionFlags[currentIdx]||0;
+document.getElementById("statCreative").textContent=apiData.creativeFlags[currentIdx]||0;
+if(primaryLabelEl){primaryLabelEl.textContent=weekLabels[currentIdx]+" (current)";primaryLabelEl.style.display="block";}
+if(captionEl)captionEl.textContent="Each week's own totals — comparing against "+weekLabels[selectedIdx]+".";
+document.getElementById("statTotalCompare").textContent=(apiData.totalRecords||[])[selectedIdx]||0;
+document.getElementById("statExecutionCompare").textContent=apiData.executionFlags[selectedIdx]||0;
+document.getElementById("statCreativeCompare").textContent=apiData.creativeFlags[selectedIdx]||0;
+if(compareLabelEl)compareLabelEl.textContent=weekLabels[selectedIdx];
+if(compareGroupEl)compareGroupEl.style.display="block";
 }else{
 document.getElementById("statTotal").textContent=grandTotal;
 document.getElementById("statExecution").textContent=grandExecution;
 document.getElementById("statCreative").textContent=grandCreative;
+if(primaryLabelEl)primaryLabelEl.style.display="none";
+if(compareGroupEl)compareGroupEl.style.display="none";
 if(captionEl)captionEl.textContent="Totals across every audit week on record — grows automatically as new weeks are added.";
 }
 
