@@ -29,7 +29,17 @@ utility colors below need an explicit light-mode override too. */
 it is white, so that circle stays a fixed dark chip (inherits the :root
 value) in both themes rather than turning invisible on a light background. */
 *{box-sizing:border-box;}
-html{transition:background-color .4s ease;}
+/* Themed scrollbars — the browser default (light track/thumb) stood out
+against the dark modal in the screenshot. scrollbar-color covers Firefox;
+the ::-webkit-scrollbar rules cover Chrome/Edge/Safari. Both read from the
+same --border/--card/--muted variables, so they flip with the theme
+automatically instead of needing their own light/dark overrides. */
+html{scrollbar-color:var(--border) transparent;scrollbar-width:thin;transition:background-color .4s ease;}
+*::-webkit-scrollbar{width:10px;height:10px;}
+*::-webkit-scrollbar-track{background:transparent;}
+*::-webkit-scrollbar-thumb{background:var(--border);border-radius:999px;border:2px solid var(--card);background-clip:padding-box;}
+*::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+.modal-body,.custom-select-menu{scrollbar-color:var(--border) transparent;scrollbar-width:thin;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;color:var(--ink);-webkit-font-smoothing:antialiased;background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.028) 1px,transparent 0),radial-gradient(950px 460px at 50% -12%,rgba(99,102,241,.20),transparent 60%),radial-gradient(780px 400px at 108% -2%,rgba(236,72,153,.13),transparent 55%),radial-gradient(680px 360px at -6% 38%,rgba(20,184,166,.12),transparent 55%),linear-gradient(180deg,#0b0c10 0%,#101218 100%);background-size:22px 22px,auto,auto,auto,auto;background-attachment:fixed;min-height:100vh;transition:background-color .4s ease,color .4s ease;}
 [data-theme="light"] body{background-image:radial-gradient(circle at 1px 1px,rgba(15,23,42,.035) 1px,transparent 0),radial-gradient(950px 480px at 50% -12%,rgba(99,102,241,.22),transparent 60%),radial-gradient(780px 420px at 106% 8%,rgba(236,72,153,.17),transparent 58%),radial-gradient(720px 400px at -8% 42%,rgba(20,184,166,.17),transparent 58%),radial-gradient(650px 520px at 50% 115%,rgba(251,191,36,.12),transparent 62%),linear-gradient(160deg,#eef0fb 0%,#f3edf7 45%,#fdf1f3 100%);}
 .topbar{background:var(--topbar-bg);backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;transition:background-color .4s ease,border-color .4s ease;}
@@ -125,6 +135,26 @@ so it needs its own darker stops rather than sharing the dark version. */
 .topperf-banner{margin-top:10px;font-size:12.5px;color:rgba(255,255,255,.82);line-height:1.55;}
 .topperf-empty{font-size:12.5px;color:rgba(255,255,255,.5);padding:6px 0;}
 .topperf-warning{font-size:12.5px;color:#fcd34d;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:10px 14px;margin:0 0 16px;position:relative;z-index:1;line-height:1.5;}
+/* Weekly Leaderboard — a themed table (unlike the fixed-dark Weekly
+Summary/Top Performers cards) since it's meant to replace a plain Notion
+table view, so it should look native in whichever theme the page is in. */
+.leaderboard-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;box-shadow:var(--shadow);transition:background-color .4s ease,border-color .4s ease;}
+.leaderboard-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.leaderboard-head h2{font-size:15.5px;font-weight:700;margin:0;color:var(--ink);}
+.leaderboard-week{font-size:11.5px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.03em;}
+.leaderboard-subtitle{margin:6px 0 18px;font-size:12.5px;color:var(--muted);}
+.leaderboard-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;}
+.leaderboard-table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
+.leaderboard-table thead th{text-align:left;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:11px 14px;background:var(--card-alt);border-bottom:1px solid var(--border);position:sticky;top:0;}
+.leaderboard-table tbody td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--ink);}
+.leaderboard-table tbody tr:last-child td{border-bottom:none;}
+.leaderboard-table tbody tr:hover td{background:var(--tint-soft);}
+.leaderboard-client{font-weight:700;}
+.leaderboard-best{color:var(--text-dim);font-weight:500;max-width:320px;overflow:hidden;text-overflow:ellipsis;}
+.leaderboard-views{font-weight:700;color:var(--ink);}
+.leaderboard-dim{color:var(--muted);}
+.leaderboard-pill{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+.leaderboard-empty{padding:20px 14px !important;text-align:center;color:var(--muted);font-weight:500 !important;}
 .older-weeks{display:flex;align-items:flex-start;gap:12px;margin-bottom:24px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease,background-color .4s ease,border-color .4s ease;}
 .older-weeks label{padding-top:6px;}
 .older-weeks:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 36px rgba(0,0,0,.45);}
@@ -322,6 +352,7 @@ delay for an entrance rather than everything popping in at once. */
 <div class="tabs" role="tablist">
 <button type="button" class="tab-btn active" id="tabBtnDashboard" role="tab" aria-selected="true">📊 Dashboard</button>
 <button type="button" class="tab-btn" id="tabBtnTopPerf" role="tab" aria-selected="false">🏆 Top Performers</button>
+<button type="button" class="tab-btn" id="tabBtnLeaderboard" role="tab" aria-selected="false">📈 Weekly Leaderboard</button>
 </div>
 <div id="tabPanelDashboard" class="tab-panel active">
 <div class="summary-card" id="summaryCard">
@@ -405,6 +436,29 @@ delay for an entrance rather than everything popping in at once. */
 <p class="topperf-subtitle" id="topPerfSubtitle">–</p>
 <p class="topperf-warning" id="topPerfWarning" style="display:none;"></p>
 <div class="topperf-groups" id="topPerfGroups"></div>
+</div>
+</div>
+<div id="tabPanelLeaderboard" class="tab-panel">
+<div class="leaderboard-card">
+<div class="leaderboard-head">
+<h2>📈 Weekly Leaderboard</h2>
+<span class="leaderboard-week" id="leaderboardWeekLabel">–</span>
+</div>
+<p class="leaderboard-subtitle">Every client audited this week, ranked by max post views — mirrors the old Notion performance table.</p>
+<div class="leaderboard-table-wrap">
+<table class="leaderboard-table">
+<thead>
+<tr>
+<th>Client</th>
+<th>Best post title</th>
+<th>Max post views</th>
+<th>Product owner</th>
+<th>Pod</th>
+</tr>
+</thead>
+<tbody id="leaderboardBody"></tbody>
+</table>
+</div>
 </div>
 </div>
 <footer>Weekly Audit Records &middot; synced from Notion<br><span class="credit" id="copyrightLine"></span></footer>
@@ -875,6 +929,60 @@ rowsHtml+bannerHtml+
 }).join("");
 }
 
+// ---- Weekly Leaderboard: a straight replacement for the Notion "Weekly
+// Dashboard" page's table (Client Name / Best Post Title / Max Post Views /
+// Product Owner (Auto) / Pod, sorted descending by Max Post Views). Same
+// current-week convention as the Weekly Summary and Top Performers cards.
+// Pill colors are pastel-bg + dark-text pairs (Notion's own tag style) so
+// they stay readable regardless of the page's light/dark theme, since the
+// contrast lives inside the pill itself rather than depending on the page.
+var LEADERBOARD_PILL_PALETTE=[
+{bg:"#ddebff",text:"#1d4ed8"},
+{bg:"#dcfce7",text:"#15803d"},
+{bg:"#fef3c7",text:"#92400e"},
+{bg:"#fce7f3",text:"#9d174d"},
+{bg:"#ede9fe",text:"#5b21b6"},
+{bg:"#cffafe",text:"#0e7490"},
+{bg:"#fee2e2",text:"#991b1b"},
+{bg:"#e5e7eb",text:"#374151"}
+];
+function leaderboardPillColor(name){
+if(!name)return LEADERBOARD_PILL_PALETTE[LEADERBOARD_PILL_PALETTE.length-1];
+return LEADERBOARD_PILL_PALETTE[hashStr(name)%LEADERBOARD_PILL_PALETTE.length];
+}
+function buildLeaderboardRows(){
+var idx=weekLabels.length-1;
+if(idx<0)return [];
+var records=recordsByWeek[idx]||[];
+return records
+.filter(function(r){return typeof r.maxPostViews==="number";})
+.slice()
+.sort(function(a,b){return b.maxPostViews-a.maxPostViews;});
+}
+function populateLeaderboard(){
+var idx=weekLabels.length-1;
+var labelEl=document.getElementById("leaderboardWeekLabel");
+if(labelEl)labelEl.textContent=idx>=0?weekLabels[idx]:"–";
+var rows=buildLeaderboardRows();
+var body=document.getElementById("leaderboardBody");
+if(!body)return;
+if(!rows.length){
+body.innerHTML='<tr><td colspan="5" class="leaderboard-empty">No ranked posts for this week yet.</td></tr>';
+return;
+}
+body.innerHTML=rows.map(function(r){
+var poColor=leaderboardPillColor(r.po);
+var podColor=leaderboardPillColor(r.pod);
+return '<tr>'+
+'<td class="leaderboard-client">'+escapeHtml(r.title)+'</td>'+
+'<td class="leaderboard-best">'+(r.bestPostTitle?escapeHtml(r.bestPostTitle):'<span class="leaderboard-dim">—</span>')+'</td>'+
+'<td class="leaderboard-views">'+numberWithCommas(r.maxPostViews)+'</td>'+
+'<td><span class="leaderboard-pill" style="background:'+poColor.bg+';color:'+poColor.text+'">'+escapeHtml(r.po||"Unassigned")+'</span></td>'+
+'<td><span class="leaderboard-pill" style="background:'+podColor.bg+';color:'+podColor.text+'">'+escapeHtml(r.pod||"—")+'</span></td>'+
+'</tr>';
+}).join("");
+}
+
 function buildTopPerformersSlackText(){
 var data=buildTopPerformersData();
 if(!data)return"";
@@ -920,6 +1028,7 @@ apiData=data;
 updateLastUpdated();
 populateSummaryCard();
 populateTopPerformers();
+populateLeaderboard();
 
 // The all-time totals, used for the stat cards whenever no comparison
 // filter is active. Grows automatically as new weeks are added.
@@ -1146,13 +1255,17 @@ if(copyrightEl)copyrightEl.textContent="© "+new Date().getFullYear()+" Zayaan. 
 function switchTab(tab){
 document.getElementById("tabBtnDashboard").classList.toggle("active",tab==="dashboard");
 document.getElementById("tabBtnTopPerf").classList.toggle("active",tab==="topperf");
+document.getElementById("tabBtnLeaderboard").classList.toggle("active",tab==="leaderboard");
 document.getElementById("tabBtnDashboard").setAttribute("aria-selected",tab==="dashboard"?"true":"false");
 document.getElementById("tabBtnTopPerf").setAttribute("aria-selected",tab==="topperf"?"true":"false");
+document.getElementById("tabBtnLeaderboard").setAttribute("aria-selected",tab==="leaderboard"?"true":"false");
 document.getElementById("tabPanelDashboard").classList.toggle("active",tab==="dashboard");
 document.getElementById("tabPanelTopPerformers").classList.toggle("active",tab==="topperf");
+document.getElementById("tabPanelLeaderboard").classList.toggle("active",tab==="leaderboard");
 }
 document.getElementById("tabBtnDashboard").addEventListener("click",function(){switchTab("dashboard");});
 document.getElementById("tabBtnTopPerf").addEventListener("click",function(){switchTab("topperf");});
+document.getElementById("tabBtnLeaderboard").addEventListener("click",function(){switchTab("leaderboard");});
 
 // Five quotes, rotated in order (not random) one step per page load/refresh
 // so the same visitor sees a different one each time instead of repeats.
