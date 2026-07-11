@@ -767,7 +767,7 @@ async function loadData(){
 var statusEl=document.getElementById("status");
 statusEl.classList.remove("visible");
 try{
-var res=await fetch("/api/audit");
+var res=await fetch("/api/audit?t="+Date.now(),{cache:"no-store"});
 var data=await res.json();
 if(!res.ok){
 statusEl.classList.add("visible");
