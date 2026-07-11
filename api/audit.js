@@ -28,6 +28,24 @@ function notionPageUrl(id) {
   return `https://www.notion.so/${String(id).replace(/-/g, "")}`;
 }
 
+// Pure UTC date-string math so results never depend on server/client
+// timezone — Notion date properties are plain YYYY-MM-DD strings.
+function toUTCDate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+function fromUTCDate(d) {
+  return d.toISOString().slice(0, 10);
+}
+function addDays(dateStr, days) {
+  const d = toUTCDate(dateStr);
+  d.setUTCDate(d.getUTCDate() + days);
+  return fromUTCDate(d);
+}
+function weekdayOf(dateStr) {
+  return toUTCDate(dateStr).getUTCDay();
+}
+
 function extractPosts(props) {
   const posts = [];
   for (const section of POST_SECTIONS) {
@@ -184,19 +202,43 @@ export default async function handler(req, res) {
       }
     }
 
-    // Group rows by "Week Of" start date. "Week Of" is a real Notion date
-    // *range* (start + end) — we use the actual end date rather than
-    // assuming a fixed 7-day span.
+    // Different clients' audits sometimes get entered with a "Week Of"
+    // start date a day or two off from each other (e.g. one tagged
+    // Thursday, another Friday, for what's meant to be the same audit
+    // week). Grouping by the literal stored date would split those into
+    // separate, overlapping "weeks". Instead we snap every record to the
+    // most common start-weekday found across the whole dataset, so weeks
+    // come out as clean, consistent, non-overlapping 7-day blocks.
+    const weekdayCounts = new Map();
+    for (const page of allResults) {
+      const start = page.properties[WEEK_PROPERTY]?.date?.start;
+      if (!start) continue;
+      const wd = weekdayOf(start);
+      weekdayCounts.set(wd, (weekdayCounts.get(wd) || 0) + 1);
+    }
+    let anchorWeekday = 0;
+    let bestCount = -1;
+    for (const [wd, count] of weekdayCounts) {
+      if (count > bestCount) {
+        bestCount = count;
+        anchorWeekday = wd;
+      }
+    }
+    function canonicalWeekStart(dateStr) {
+      const diff = (weekdayOf(dateStr) - anchorWeekday + 7) % 7;
+      return addDays(dateStr, -diff);
+    }
+
     const weekMap = new Map();
     for (const page of allResults) {
       const props = page.properties;
-      const weekDate = props[WEEK_PROPERTY]?.date;
-      const weekStart = weekDate?.start;
-      if (!weekStart) continue;
+      const rawStart = props[WEEK_PROPERTY]?.date?.start;
+      if (!rawStart) continue;
+      const weekStart = canonicalWeekStart(rawStart);
 
       if (!weekMap.has(weekStart)) {
         weekMap.set(weekStart, {
-          end: weekDate.end || null,
+          end: addDays(weekStart, 6),
           execution: 0,
           creative: 0,
           total: 0,
@@ -204,7 +246,6 @@ export default async function handler(req, res) {
         });
       }
       const bucket = weekMap.get(weekStart);
-      if (!bucket.end && weekDate.end) bucket.end = weekDate.end;
       bucket.total += 1;
 
       const executionFlag = !!props[EXECUTION_PROPERTY]?.checkbox;
