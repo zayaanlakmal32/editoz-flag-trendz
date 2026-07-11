@@ -66,6 +66,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .summary-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;position:relative;z-index:1;}
 .summary-link{font-size:12px;font-weight:600;color:#c7d2fe;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:8px 13px;border-radius:999px;text-decoration:none;transition:background .15s ease;}
 .summary-link:hover{background:rgba(255,255,255,.17);}
+.topperf-card{position:relative;overflow:hidden;background:linear-gradient(135deg,#161116 0%,#1c1712 55%,#241c10 100%);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:26px 28px;box-shadow:0 20px 50px rgba(0,0,0,.5);color:#fff;margin-bottom:24px;}
+.topperf-card::before{content:"";position:absolute;top:-70px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(251,191,36,.25),transparent 70%);pointer-events:none;}
+.topperf-card::after{content:"";position:absolute;bottom:-90px;left:-50px;width:240px;height:240px;background:radial-gradient(circle,rgba(249,115,22,.16),transparent 70%);pointer-events:none;}
+.topperf-head{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1;flex-wrap:wrap;}
+.topperf-title{display:flex;align-items:center;gap:8px;font-size:15.5px;font-weight:700;letter-spacing:-0.01em;}
+.topperf-icon{font-size:18px;}
+.topperf-subtitle{margin:6px 0 20px;font-size:12.5px;color:rgba(255,255,255,.55);position:relative;z-index:1;}
+.topperf-groups{display:flex;flex-direction:column;gap:16px;position:relative;z-index:1;}
+.topperf-group{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px 18px;}
+.topperf-group-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
+.topperf-group-name{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;}
+.topperf-group-name.accelerate{color:#93c5fd;}
+.topperf-group-name.dfy{color:#d8b4fe;}
+.topperf-group-week{font-size:11.5px;color:rgba(255,255,255,.5);font-style:italic;}
+.topperf-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07);}
+.topperf-row:last-of-type{border-bottom:none;}
+.topperf-medal{font-size:17px;flex-shrink:0;width:22px;text-align:center;}
+.topperf-client{font-weight:700;font-size:13px;flex-shrink:0;}
+.topperf-link{color:#93c5fd;font-size:12.5px;font-weight:600;text-decoration:none;}
+.topperf-link:hover{text-decoration:underline;}
+.topperf-views{font-size:12px;font-weight:700;color:#fbbf24;white-space:nowrap;margin-left:auto;}
+.topperf-po{font-size:11px;font-weight:600;color:rgba(255,255,255,.55);white-space:nowrap;}
+.topperf-banner{margin-top:10px;font-size:12.5px;color:rgba(255,255,255,.82);line-height:1.55;}
+.topperf-empty{font-size:12.5px;color:rgba(255,255,255,.5);padding:6px 0;}
 .older-weeks{display:flex;align-items:flex-start;gap:12px;margin-bottom:24px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease;}
 .older-weeks label{padding-top:6px;}
 .older-weeks:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 36px rgba(0,0,0,.45);}
@@ -209,6 +233,14 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 <a class="summary-link" href="https://app.notion.com/p/editozclub/507ca77b02454fb5bb87150b93f31910?v=374b6494fc1481d7b6b7000c3e379310" target="_blank" rel="noopener noreferrer">🎨 Weekly Creative Flagged Project List</a>
 <a class="summary-link" href="https://app.notion.com/p/editozclub/507ca77b02454fb5bb87150b93f31910?v=374b6494fc148118b5e9000c20d2f834" target="_blank" rel="noopener noreferrer">⚙️ Weekly Operational Flagged Project List</a>
 </div>
+</div>
+<div class="topperf-card" id="topPerformersCard">
+<div class="topperf-head">
+<div class="topperf-title"><span class="topperf-icon">🏆</span><span>Top Performers</span></div>
+<button type="button" class="summary-copy-btn" id="topPerfCopyBtn"><span id="topPerfCopyBtnText">📋 Copy for Slack</span></button>
+</div>
+<p class="topperf-subtitle" id="topPerfSubtitle">–</p>
+<div class="topperf-groups" id="topPerfGroups"></div>
 </div>
 <p class="stat-strip-week-label" id="statPrimaryLabel" style="display:none;"></p>
 <div class="stat-strip">
@@ -519,23 +551,29 @@ label+" weekly audit is completed! Below is the summary 🙌",
 return lines.join("\n");
 }
 
-function showSummaryCopied(btn){
-var textEl=document.getElementById("summaryCopyBtnText");
+// Generalized copy-feedback flash — looks at the button's own label span
+// rather than a hardcoded ID, so both the Weekly Summary and Top Performers
+// copy buttons can share this instead of each needing their own copy.
+function showCopiedFeedback(btn){
+var textEl=btn.querySelector("span");
+if(!textEl)return;
 var original=textEl.textContent;
 btn.classList.add("copied");
 textEl.textContent="✓ Copied!";
 setTimeout(function(){btn.classList.remove("copied");textEl.textContent=original;},1800);
 }
 
-document.getElementById("summaryCopyBtn").addEventListener("click",function(){
-var btn=this;
-var text=buildSummaryText();
+function copyTextToClipboard(text,btn){
 if(!text)return;
 if(navigator.clipboard&&navigator.clipboard.writeText){
-navigator.clipboard.writeText(text).then(function(){showSummaryCopied(btn);}).catch(function(){fallbackCopyText(text,btn);});
+navigator.clipboard.writeText(text).then(function(){showCopiedFeedback(btn);}).catch(function(){fallbackCopyText(text,btn);});
 }else{
 fallbackCopyText(text,btn);
 }
+}
+
+document.getElementById("summaryCopyBtn").addEventListener("click",function(){
+copyTextToClipboard(buildSummaryText(),this);
 });
 
 function fallbackCopyText(text,btn){
@@ -548,8 +586,146 @@ ta.focus();
 ta.select();
 try{document.execCommand("copy");}catch(e){}
 document.body.removeChild(ta);
-showSummaryCopied(btn);
+showCopiedFeedback(btn);
 }
+
+// ---- Top Performers: best-viewed post per program (Accelerate / DFY),
+// pulled from the latest completed week regardless of which client posted
+// it. Category + PO come from the linked Project Tracker page (audit.js
+// resolves this server-side); a post only shows up here if that link and
+// its Project Type are set in Notion.
+var TOPPERF_CATEGORIES=["Accelerate","DFY"];
+var MEDALS=["🥇","🥈","🥉"];
+var TOPPERF_INTROS=[
+"Heyyyy! @channel, as we wrap up this week let's give a shoutout to this week's top performing content across our projects. 🎉",
+"Yo team @channel! Time to spotlight the content that crushed it this week. 🔥",
+"@channel it's that time again — let's celebrate the posts that popped off this week! 🚀",
+"Big week, @channel! Let's shine a light on the top performers before we close it out. ✨"
+];
+var TOPPERF_REACTION_SAME=[
+"{client} taking all 3 spots this week, absolutely unreal… keep the energy going! 🚀",
+"{client} said \"step aside everyone\" and just… didn't look back 😤🔥",
+"{client} said \"I'll take the gold, silver AND bronze, thanks\" 👑😄",
+"Clean sweep! {client} owns the entire podium this week 🏆"
+];
+var TOPPERF_REACTION_MIXED=[
+"Huge shoutout to everyone on the board this week — incredible work all around! 🙌",
+"This week's leaderboard is absolutely stacked — keep pushing the bar higher! 🔥",
+"Every single one of these deserves a standing ovation. Let's keep cooking! 👏",
+"Scroll-stopping content across the board this week — amazing job team! 🚀"
+];
+var TOPPERF_RECAP=[
+"{v1}. {v2}. {v3}. The podium has been claimed and {client} left absolutely zero crumbs. Incredible week! 🔥",
+"{v1}. {v2}. {v3}. Numbers don't lie — {client} showed up and showed out! 💥",
+"{v1}. {v2}. {v3}. That's not a typo, that's just {client} being unstoppable. 🚀",
+"{v1}. {v2}. {v3}. Certified bangers, top to bottom this week. Let's keep it rolling! ✨"
+];
+function hashStr(s){var h=0;for(var i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return Math.abs(h);}
+function pickTemplate(templates,seed){return templates[hashStr(seed)%templates.length];}
+function numberWithCommas(n){return typeof n==="number"?n.toLocaleString("en-US"):"0";}
+function fillTemplate(tpl,vars){return tpl.replace(/\{(\w+)\}/g,function(_,k){return vars[k]!==undefined?vars[k]:"";});}
+
+function formatWeekOf(startIso,endIso){
+var start=new Date(startIso+"T00:00:00");
+var end=endIso?new Date(endIso+"T00:00:00"):new Date(start);
+if(!endIso)end.setDate(start.getDate()+6);
+var startMonth=start.toLocaleString("en-US",{month:"long"});
+var endMonth=end.toLocaleString("en-US",{month:"long"});
+if(startMonth===endMonth)return ordinal(start.getDate())+" – "+ordinal(end.getDate())+" "+endMonth;
+return ordinal(start.getDate())+" "+startMonth+" – "+ordinal(end.getDate())+" "+endMonth;
+}
+
+// Flattens every tracked post (Top + Bottom, across every client) for the
+// given week into one list filtered to a single program, then ranks by
+// views — a post from any client can land in any of the top 3 spots.
+function topPostsForCategory(weekIndex,category){
+var records=recordsByWeek[weekIndex]||[];
+var posts=[];
+records.forEach(function(r){
+if(r.category!==category)return;
+(r.posts||[]).forEach(function(p){
+if(typeof p.views!=="number"||!p.link)return;
+posts.push({client:r.title,po:r.po,views:p.views,link:p.link});
+});
+});
+posts.sort(function(a,b){return b.views-a.views;});
+return posts.slice(0,3);
+}
+
+function buildTopPerformersData(){
+var idx=weekLabels.length-1;
+if(idx<0)return null;
+var weekOf=apiData?formatWeekOf(apiData.weeks[idx],(apiData.weekEnds||[])[idx]):"";
+var groups=TOPPERF_CATEGORIES.map(function(category){
+var entries=topPostsForCategory(idx,category);
+var seed=weekLabels[idx]+category;
+var reaction="",recap="";
+if(entries.length){
+var sameClient=entries.every(function(e){return e.client===entries[0].client;});
+reaction=fillTemplate(pickTemplate(sameClient?TOPPERF_REACTION_SAME:TOPPERF_REACTION_MIXED,seed+"r"),{client:entries[0].client});
+recap=fillTemplate(pickTemplate(TOPPERF_RECAP,seed+"c"),{
+v1:shortNumber(entries[0].views),
+v2:entries[1]?shortNumber(entries[1].views):"–",
+v3:entries[2]?shortNumber(entries[2].views):"–",
+client:entries[0].client
+});
+}
+return {category:category,entries:entries,reaction:reaction,recap:recap};
+});
+return {idx:idx,weekLabel:weekLabels[idx],weekOf:weekOf,groups:groups,intro:pickTemplate(TOPPERF_INTROS,weekLabels[idx])};
+}
+
+function populateTopPerformers(){
+var data=buildTopPerformersData();
+var container=document.getElementById("topPerfGroups");
+var subtitleEl=document.getElementById("topPerfSubtitle");
+if(!data){container.innerHTML="";if(subtitleEl)subtitleEl.textContent="No data yet.";return;}
+if(subtitleEl)subtitleEl.textContent=data.weekLabel+" — best-viewed post per program, any client";
+container.innerHTML=data.groups.map(function(g){
+var rowsHtml=g.entries.length?g.entries.map(function(e,i){
+return '<div class="topperf-row">'+
+'<span class="topperf-medal">'+MEDALS[i]+'</span>'+
+'<span class="topperf-client">'+escapeHtml(e.client)+'</span>'+
+'<a class="topperf-link" href="'+escapeAttr(e.link)+'" target="_blank" rel="noopener noreferrer">Link</a>'+
+'<span class="topperf-views">'+numberWithCommas(e.views)+' views</span>'+
+'<span class="topperf-po">PO: @'+escapeHtml(e.po||"Unassigned")+'</span>'+
+'</div>';
+}).join(""):'<div class="topperf-empty">No categorized posts found for this week yet.</div>';
+var bannerHtml=g.reaction?'<p class="topperf-banner">'+escapeHtml(g.reaction)+'<br>'+escapeHtml(g.recap)+'</p>':"";
+return '<div class="topperf-group">'+
+'<div class="topperf-group-head"><span class="topperf-group-name '+g.category.toLowerCase()+'">'+escapeHtml(g.category.toUpperCase())+' - Top 3 This Week!</span>'+
+'<span class="topperf-group-week">Week of: '+escapeHtml(data.weekOf)+'</span></div>'+
+rowsHtml+bannerHtml+
+'</div>';
+}).join("");
+}
+
+function buildTopPerformersSlackText(){
+var data=buildTopPerformersData();
+if(!data)return"";
+var lines=[data.intro,""];
+data.groups.forEach(function(g,gi){
+lines.push("*"+g.category.toUpperCase()+" - Top 3 This Week!*");
+lines.push("_Week of: "+data.weekOf+"_");
+if(g.entries.length){
+g.entries.forEach(function(e,i){
+lines.push("#"+(i+1)+" - "+e.client+" | <"+e.link+"|Link> | "+numberWithCommas(e.views)+" views | PO: @"+(e.po||"Unassigned"));
+});
+lines.push("");
+lines.push(g.reaction);
+lines.push("");
+lines.push(g.recap);
+}else{
+lines.push("No categorized posts found for this week yet.");
+}
+if(gi<data.groups.length-1){lines.push("");lines.push("");}
+});
+return lines.join("\n");
+}
+
+document.getElementById("topPerfCopyBtn").addEventListener("click",function(){
+copyTextToClipboard(buildTopPerformersSlackText(),this);
+});
 
 async function loadData(){
 var statusEl=document.getElementById("status");
@@ -568,6 +744,7 @@ weekLabels=data.weeks.map(function(w,i){return formatAuditLabel(i,w,(data.weekEn
 apiData=data;
 updateLastUpdated();
 populateSummaryCard();
+populateTopPerformers();
 
 // The all-time totals, used for the stat cards whenever no comparison
 // filter is active. Grows automatically as new weeks are added.
