@@ -64,6 +64,16 @@ function extractMeta(props) {
     const prop = props[key];
     if (!prop || prop.type === "title") continue;
 
+    // Long values don't belong in a small tag chip — route them to notes
+    // instead so they get proper labeled, wrappable display.
+    const TAG_MAX_LEN = 40;
+    function addValue(rawValue) {
+      if (rawValue === null || rawValue === undefined || rawValue === "") return;
+      const value = String(rawValue);
+      if (value.length > TAG_MAX_LEN) notes.push({ label: key, value });
+      else tags.push({ label: key, value });
+    }
+
     switch (prop.type) {
       case "url":
         if (prop.url) links.push({ label: key, url: prop.url });
@@ -82,33 +92,33 @@ function extractMeta(props) {
         break;
       }
       case "select":
-        if (prop.select) tags.push(prop.select.name);
+        addValue(prop.select?.name);
         break;
       case "status":
-        if (prop.status) tags.push(prop.status.name);
+        addValue(prop.status?.name);
         break;
       case "multi_select":
-        if (prop.multi_select.length) tags.push(prop.multi_select.map((s) => s.name).join(", "));
+        addValue(prop.multi_select.length ? prop.multi_select.map((s) => s.name).join(", ") : null);
         break;
       case "checkbox":
-        tags.push(`${key}: ${prop.checkbox ? "Yes" : "No"}`);
+        addValue(prop.checkbox ? "Yes" : "No");
         break;
       case "number":
-        if (prop.number !== null && prop.number !== undefined) tags.push(`${key}: ${prop.number.toLocaleString()}`);
+        addValue(prop.number !== null && prop.number !== undefined ? prop.number.toLocaleString() : null);
         break;
       case "people":
-        if (prop.people.length) tags.push(prop.people.map((p) => p.name || "Unknown").join(", "));
+        addValue(prop.people.length ? prop.people.map((p) => p.name || "Unknown").join(", ") : null);
         break;
       case "date":
-        if (prop.date?.start) tags.push(prop.date.start);
+        addValue(prop.date?.start || null);
         break;
       case "formula": {
         if (!prop.formula) break;
         let v = null;
         if (typeof prop.formula.string === "string") v = prop.formula.string;
-        else if (typeof prop.formula.number === "number") v = String(prop.formula.number);
+        else if (typeof prop.formula.number === "number") v = prop.formula.number.toLocaleString();
         else if (typeof prop.formula.boolean === "boolean") v = prop.formula.boolean ? "Yes" : "No";
-        if (v) tags.push(v);
+        addValue(v);
         break;
       }
       default:
