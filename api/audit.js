@@ -3,7 +3,7 @@
 // Records" Notion database and returns flag counts for the last 3 weeks.
 
 const NOTION_VERSION = "2022-06-28";
-const DATABASE_ID = "d9179591-9b79-4e56-bb3a-6a890a7da3d5";
+const DATABASE_ID = "507ca77b-0245-4fb5-bb87-150b93f31910";
 const WEEK_PROPERTY = "Week Of";
 const EXECUTION_PROPERTY = "⚙️ Flag Execution";
 const CREATIVE_PROPERTY = "🎨 Flag Creative";
