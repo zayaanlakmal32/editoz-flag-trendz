@@ -208,11 +208,28 @@ export default async function handler(req, res) {
     // fails, we log and continue with an empty map — every record just gets
     // category/po: null rather than the whole dashboard breaking.
     let projectTrackerMap = new Map();
+    let projectTrackerError = null;
     try {
       projectTrackerMap = await fetchProjectTrackerMap(token);
     } catch (trackerErr) {
+      projectTrackerError = trackerErr.message;
       console.error("Project Tracker lookup failed:", trackerErr.message);
     }
+
+    // Two more granular counters so the frontend can tell apart the three
+    // distinct ways this join can come up empty, instead of guessing:
+    //   1. recordsWithTrackerRelation — how many audit records actually have
+    //      the "📊 Project Tracker" relation filled in at all. If this is 0,
+    //      it's a Notion data-entry gap on the audit records themselves, not
+    //      a permissions problem.
+    //   2. recordsWithResolvedCategory — of those, how many successfully
+    //      matched a Project Tracker page in projectTrackerMap with a
+    //      Project Type set. If recordsWithTrackerRelation > 0 but this is
+    //      0, the relation is filled in but the join/lookup itself is
+    //      failing (wrong database ID, stale deploy, or the linked Project
+    //      Tracker pages are missing "Project Type").
+    let recordsWithTrackerRelation = 0;
+    let recordsWithResolvedCategory = 0;
 
     // Notion caps each query response at 100 rows, so we page through
     // start_cursor/has_more until every record has been fetched. Without
@@ -301,9 +318,11 @@ export default async function handler(req, res) {
       const { tags, notes, links } = extractMeta(props);
 
       const trackerId = props[PROJECT_TRACKER_RELATION_PROPERTY]?.relation?.[0]?.id || null;
+      if (trackerId) recordsWithTrackerRelation += 1;
       const trackerInfo = trackerId ? projectTrackerMap.get(trackerId) : null;
       const category = trackerInfo?.category || null; // "Accelerate" | "DFY" | null
       const po = trackerInfo?.po || null;
+      if (category) recordsWithResolvedCategory += 1;
 
       bucket.records.push({ title, executionFlag, creativeFlag, posts, tags, notes, links, category, po });
     }
@@ -320,11 +339,15 @@ export default async function handler(req, res) {
       creativeFlags: weeks.map((w) => weekMap.get(w).creative),
       totalRecords: weeks.map((w) => weekMap.get(w).total),
       recordsByWeek: weeks.map((w) => weekMap.get(w).records),
-      // Lets the frontend tell "integration isn't connected to Project
-      // Tracker" apart from "no categorized posts this week" instead of
-      // guessing — 0 almost always means the Notion integration needs to be
-      // added as a connection on the Project Tracker database itself.
+      // Diagnostics for the Top Performers tab — lets the frontend pinpoint
+      // exactly which stage of the Project Tracker join is failing instead
+      // of showing one generic "no data" message. See the comments above
+      // recordsWithTrackerRelation / recordsWithResolvedCategory for what
+      // each combination means.
       projectTrackerLinkedCount: projectTrackerMap.size,
+      projectTrackerError,
+      recordsWithTrackerRelation,
+      recordsWithResolvedCategory,
     });
   } catch (err) {
     return res.status(500).json({
