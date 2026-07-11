@@ -42,9 +42,6 @@ function addDays(dateStr, days) {
   d.setUTCDate(d.getUTCDate() + days);
   return fromUTCDate(d);
 }
-function weekdayOf(dateStr) {
-  return toUTCDate(dateStr).getUTCDay();
-}
 
 function extractPosts(props) {
   const posts = [];
@@ -202,39 +199,18 @@ export default async function handler(req, res) {
       }
     }
 
-    // Different clients' audits sometimes get entered with a "Week Of"
-    // start date a day or two off from each other (e.g. one tagged
-    // Thursday, another Friday, for what's meant to be the same audit
-    // week). Grouping by the literal stored date would split those into
-    // separate, overlapping "weeks". Instead we snap every record to the
-    // most common start-weekday found across the whole dataset, so weeks
-    // come out as clean, consistent, non-overlapping 7-day blocks.
-    const weekdayCounts = new Map();
-    for (const page of allResults) {
-      const start = page.properties[WEEK_PROPERTY]?.date?.start;
-      if (!start) continue;
-      const wd = weekdayOf(start);
-      weekdayCounts.set(wd, (weekdayCounts.get(wd) || 0) + 1);
-    }
-    let anchorWeekday = 0;
-    let bestCount = -1;
-    for (const [wd, count] of weekdayCounts) {
-      if (count > bestCount) {
-        bestCount = count;
-        anchorWeekday = wd;
-      }
-    }
-    function canonicalWeekStart(dateStr) {
-      const diff = (weekdayOf(dateStr) - anchorWeekday + 7) % 7;
-      return addDays(dateStr, -diff);
-    }
-
+    // Group strictly by the literal "Week Of" start date stored in Notion.
+    // An earlier version tried to be "smart" and snap nearby dates together
+    // to fix a display glitch, but that actually pulled records in from
+    // adjacent weeks and inflated flag counts — verified by hand-checking
+    // real records against the dashboard's numbers. Trusting the exact
+    // stored date is the only way to keep counts accurate; if a specific
+    // record's date is wrong, that's a data entry fix in Notion itself.
     const weekMap = new Map();
     for (const page of allResults) {
       const props = page.properties;
-      const rawStart = props[WEEK_PROPERTY]?.date?.start;
-      if (!rawStart) continue;
-      const weekStart = canonicalWeekStart(rawStart);
+      const weekStart = props[WEEK_PROPERTY]?.date?.start;
+      if (!weekStart) continue;
 
       if (!weekMap.has(weekStart)) {
         weekMap.set(weekStart, {
