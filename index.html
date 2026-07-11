@@ -32,8 +32,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .trend.down{color:#0f7a47;background:#ecfdf3;}
 .trend.flat{color:var(--muted);background:#f2f3f5;}
 .chart-wrap{position:relative;height:260px;}
-.chart-scroll{overflow-x:auto;overflow-y:hidden;height:100%;}
-.chart-inner{height:100%;}
+.older-weeks{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.older-weeks label{font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap;}
+.older-weeks select{flex:1;max-width:280px;font-size:12.5px;font-family:inherit;color:var(--ink);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;}
 .skeleton{position:absolute;inset:0;display:flex;align-items:flex-end;gap:14px;padding:0 8px;}
 .skeleton div{flex:1;border-radius:8px 8px 0 0;background:linear-gradient(90deg,#eef0f2 25%,#e4e6ea 37%,#eef0f2 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;}
 .skeleton div:nth-child(1){height:55%;}
@@ -99,9 +100,13 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="page">
 <div class="page-header">
 <h1>Flag Trends</h1>
-<p>Execution &amp; Creative flags across the full audit history</p>
+<p>Execution &amp; Creative flags for the current and prior 2 audit weeks</p>
 </div>
 <div id="status"></div>
+<div class="older-weeks">
+<label for="olderWeeksSelect">Browse older weeks</label>
+<select id="olderWeeksSelect"><option value="">Select a week…</option></select>
+</div>
 <div class="stat-strip">
 <div class="stat"><span class="stat-value" id="statTotal">–</span><span class="stat-label">Records Audited</span></div>
 <div class="stat"><span class="stat-value" id="statExecution">–</span><span class="stat-label">Execution Flags</span></div>
@@ -112,17 +117,17 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="chart-card-head"><h2>⚙️ Execution Flags</h2><span id="executionTrend"></span></div>
 <div class="chart-wrap">
 <div class="skeleton" id="executionSkeleton"><div></div><div></div><div></div></div>
-<div class="chart-scroll"><div class="chart-inner"><canvas id="executionChart"></canvas></div></div>
+<canvas id="executionChart"></canvas>
 </div>
-<div class="hint">Click a bar for that week's details &middot; scroll for more weeks</div>
+<div class="hint">Click a bar for that week's details</div>
 </div>
 <div class="chart-card">
 <div class="chart-card-head"><h2>🎨 Creative Flags</h2><span id="creativeTrend"></span></div>
 <div class="chart-wrap">
 <div class="skeleton" id="creativeSkeleton"><div></div><div></div><div></div></div>
-<div class="chart-scroll"><div class="chart-inner"><canvas id="creativeChart"></canvas></div></div>
+<canvas id="creativeChart"></canvas>
 </div>
-<div class="hint">Click a bar for that week's details &middot; scroll for more weeks</div>
+<div class="hint">Click a bar for that week's details</div>
 </div>
 </div>
 <footer>Weekly Audit Records &middot; synced from Notion</footer>
@@ -250,37 +255,55 @@ return;
 }
 weekLabels=data.weeks.map(function(w,i){return formatWeekRange(w,(data.weekEnds||[])[i]);});
 recordsByWeek=data.recordsByWeek||[];
-var totals=data.totalRecords||[];
-document.getElementById("statTotal").textContent=totals.reduce(function(a,b){return a+b;},0);
-document.getElementById("statExecution").textContent=data.executionFlags.reduce(function(a,b){return a+b;},0);
-document.getElementById("statCreative").textContent=data.creativeFlags.reduce(function(a,b){return a+b;},0);
-renderTrend("executionTrend",data.executionFlags);
-renderTrend("creativeTrend",data.creativeFlags);
-renderChart("executionChart","executionSkeleton",weekLabels,data.executionFlags,totals,"#4f46e5","#7c7ff2");
-renderChart("creativeChart","creativeSkeleton",weekLabels,data.creativeFlags,totals,"#db2777","#f0479f");
+
+var VISIBLE_WEEKS=3;
+var offset=Math.max(0,weekLabels.length-VISIBLE_WEEKS);
+var chartLabels=weekLabels.slice(offset);
+var chartExecution=data.executionFlags.slice(offset);
+var chartCreative=data.creativeFlags.slice(offset);
+var chartTotals=(data.totalRecords||[]).slice(offset);
+
+document.getElementById("statTotal").textContent=chartTotals.reduce(function(a,b){return a+b;},0);
+document.getElementById("statExecution").textContent=chartExecution.reduce(function(a,b){return a+b;},0);
+document.getElementById("statCreative").textContent=chartCreative.reduce(function(a,b){return a+b;},0);
+renderTrend("executionTrend",chartExecution);
+renderTrend("creativeTrend",chartCreative);
+renderChart("executionChart","executionSkeleton",chartLabels,chartExecution,chartTotals,"#4f46e5","#7c7ff2",offset);
+renderChart("creativeChart","creativeSkeleton",chartLabels,chartCreative,chartTotals,"#db2777","#f0479f",offset);
+populateOlderWeeks(offset);
 }catch(err){
 statusEl.classList.add("visible");
 statusEl.textContent="Something went wrong rendering the dashboard: "+err.message;
 console.error(err);
 }
 }
-function renderChart(canvasId,skeletonId,labels,values,totals,colorTop,colorBottom){
+function renderChart(canvasId,skeletonId,labels,values,totals,colorTop,colorBottom,offset){
 var canvas=document.getElementById(canvasId);
-var inner=canvas.parentElement;
-var scroller=inner.parentElement;
-var minPerBar=65;
-var neededWidth=labels.length*minPerBar;
-var availableWidth=scroller.clientWidth;
-inner.style.width=Math.max(neededWidth,availableWidth)+"px";
-inner.style.height="100%";
 var ctx=canvas.getContext("2d");
 var lastIndex=values.length-1;
 new Chart(ctx,{
 type:"bar",
 data:{labels:labels,datasets:[{label:"Flags",data:values,backgroundColor:function(context){var i=context.dataIndex;var chart=context.chart;var ctx2=chart.ctx;var chartArea=chart.chartArea;if(!chartArea)return colorTop;if(i===lastIndex)return makeGradient(ctx2,chartArea,colorTop,colorBottom);return hexToRgba(colorTop,0.28);},borderRadius:8,maxBarThickness:72}]},
-options:{responsive:true,maintainAspectRatio:false,onClick:function(evt,elements){if(elements.length>0)openModal(elements[0].index);},animation:{onComplete:function(){var sk=document.getElementById(skeletonId);if(sk)sk.style.display="none";}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false,callbacks:{label:function(item){var total=totals[item.dataIndex]||0;var rate=total>0?Math.round((item.raw/total)*100):0;return item.raw+" flags — "+rate+"% of "+total+" records";}}}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}}
+options:{responsive:true,maintainAspectRatio:false,onClick:function(evt,elements){if(elements.length>0)openModal(offset+elements[0].index);},animation:{onComplete:function(){var sk=document.getElementById(skeletonId);if(sk)sk.style.display="none";}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false,callbacks:{label:function(item){var total=totals[item.dataIndex]||0;var rate=total>0?Math.round((item.raw/total)*100):0;return item.raw+" flags — "+rate+"% of "+total+" records";}}}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}}
 });
 }
+function populateOlderWeeks(offset){
+var select=document.getElementById("olderWeeksSelect");
+select.innerHTML='<option value="">Select a week…</option>';
+for(var i=offset-1;i>=0;i--){
+var opt=document.createElement("option");
+opt.value=String(i);
+opt.textContent=weekLabels[i];
+select.appendChild(opt);
+}
+select.parentElement.style.display=offset>0?"flex":"none";
+}
+document.getElementById("olderWeeksSelect").addEventListener("change",function(e){
+var val=e.target.value;
+if(val==="")return;
+openModal(parseInt(val,10));
+e.target.value="";
+});
 loadData();
 </script>
 </body>
