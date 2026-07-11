@@ -25,6 +25,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;}
 .chart-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 24px 12px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease;}
 .chart-card:hover{transform:translateY(-3px);box-shadow:0 2px 6px rgba(16,24,40,.07),0 18px 36px rgba(16,24,40,.11);}
+.chart-card-wide{margin-bottom:20px;}
 .chart-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
 .chart-card-head h2{font-size:14.5px;font-weight:600;margin:0;display:flex;align-items:center;gap:8px;}
 .badge{font-size:11px;font-weight:600;color:var(--muted);background:#f2f3f5;padding:4px 9px;border-radius:999px;letter-spacing:.01em;}
@@ -71,8 +72,12 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 .modal-backdrop.visible{display:flex;}
 .modal{background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(16,24,40,.25);}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);}
-.modal-head h3{margin:0;font-size:16px;font-weight:700;}
+.modal-head h3{margin:0;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;}
 .modal-head p{margin:2px 0 0;font-size:12.5px;color:var(--muted);}
+.modal-filter-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;display:none;}
+.modal-filter-badge.execution{display:inline-block;color:#4f46e5;background:#eef0ff;}
+.modal-filter-badge.creative{display:inline-block;color:#db2777;background:#fdeef6;}
+.modal-filter-badge.all{display:inline-block;color:#475569;background:#eef1f5;}
 .modal-close{border:none;background:#f2f3f5;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--muted);flex-shrink:0;}
 .modal-close:hover{background:#e8e9ec;}
 .modal-search{padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -126,7 +131,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="page">
 <div class="page-header">
 <h1>Flag Trends</h1>
-<p>Execution &amp; Creative flags for the current and prior 2 audit weeks</p>
+<p>Audit volume, execution &amp; creative flags for the current and prior 2 audit weeks</p>
 </div>
 <div id="status"></div>
 <div class="older-weeks">
@@ -140,6 +145,14 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="stat stat-creative"><div class="stat-icon">🎨</div><div class="stat-text"><span class="stat-value" id="statCreative">–</span><span class="stat-label">Creative Flags</span></div></div>
 </div>
 <p class="stat-strip-caption" id="statCaption">Totals across every audit week on record — grows automatically as new weeks are added.</p>
+<div class="chart-card chart-card-wide">
+<div class="chart-card-head"><h2>📊 Overall Audits</h2><span id="auditsTrend"></span></div>
+<div class="chart-wrap">
+<div class="skeleton" id="auditsSkeleton"><div></div><div></div><div></div></div>
+<canvas id="auditsChart"></canvas>
+</div>
+<div class="hint">Click a bar to see every record audited that week</div>
+</div>
 <div class="grid">
 <div class="chart-card">
 <div class="chart-card-head"><h2>⚙️ Execution Flags</h2><span id="executionTrend"></span></div>
@@ -147,7 +160,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="skeleton" id="executionSkeleton"><div></div><div></div><div></div></div>
 <canvas id="executionChart"></canvas>
 </div>
-<div class="hint">Click a bar for that week's details</div>
+<div class="hint">Click a point to see the flagged execution records</div>
 </div>
 <div class="chart-card">
 <div class="chart-card-head"><h2>🎨 Creative Flags</h2><span id="creativeTrend"></span></div>
@@ -155,7 +168,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="skeleton" id="creativeSkeleton"><div></div><div></div><div></div></div>
 <canvas id="creativeChart"></canvas>
 </div>
-<div class="hint">Click a bar for that week's details</div>
+<div class="hint">Click a point to see the flagged creative records</div>
 </div>
 </div>
 <footer>Weekly Audit Records &middot; synced from Notion</footer>
@@ -164,7 +177,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="modal-backdrop" id="modalBackdrop">
 <div class="modal">
 <div class="modal-head">
-<div><h3 id="modalTitle">Week</h3><p id="modalSubtitle"></p></div>
+<div><h3 id="modalTitle"><span id="modalTitleText">Week</span><span class="modal-filter-badge" id="modalFilterBadge"></span></h3><p id="modalSubtitle"></p></div>
 <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
 </div>
 <div class="modal-search">
@@ -226,17 +239,33 @@ else{el.className="trend flat";el.textContent="– 0%";}
 var weekLabels=[];
 var recordsByWeek=[];
 
-function openModal(weekIndex,flagKey){
+function openModal(weekIndex,filterKey){
 var backdrop=document.getElementById("modalBackdrop");
-var records=recordsByWeek[weekIndex]||[];
-document.getElementById("modalTitle").textContent=weekLabels[weekIndex];
-document.getElementById("modalSubtitle").textContent=records.length+" record"+(records.length===1?"":"s")+" audited this week";
+var allRecords=recordsByWeek[weekIndex]||[];
+var records=allRecords;
+var subtitleText;
+var badgeEl=document.getElementById("modalFilterBadge");
+if(filterKey==="execution"){
+records=allRecords.filter(function(r){return r.executionFlag;});
+subtitleText=records.length+" of "+allRecords.length+" record"+(allRecords.length===1?"":"s")+" flagged for execution";
+if(badgeEl){badgeEl.textContent="Execution";badgeEl.className="modal-filter-badge execution";}
+}else if(filterKey==="creative"){
+records=allRecords.filter(function(r){return r.creativeFlag;});
+subtitleText=records.length+" of "+allRecords.length+" record"+(allRecords.length===1?"":"s")+" flagged for creative";
+if(badgeEl){badgeEl.textContent="Creative";badgeEl.className="modal-filter-badge creative";}
+}else{
+subtitleText=allRecords.length+" record"+(allRecords.length===1?"":"s")+" audited this week";
+if(badgeEl){badgeEl.textContent="All Records";badgeEl.className="modal-filter-badge all";}
+}
+document.getElementById("modalTitleText").textContent=weekLabels[weekIndex];
+document.getElementById("modalSubtitle").textContent=subtitleText;
 var searchInput=document.getElementById("clientSearchInput");
 if(searchInput)searchInput.value="";
 var body=document.getElementById("modalBody");
 body.innerHTML="";
 if(records.length===0){
-body.innerHTML='<div class="record-row"><span class="record-meta">No records found for this week.</span></div>';
+var emptyMsg=filterKey==="execution"?"No records were flagged for execution this week.":filterKey==="creative"?"No records were flagged for creative this week.":"No records found for this week.";
+body.innerHTML='<div class="modal-empty">'+escapeHtml(emptyMsg)+'</div>';
 }
 var NOTE_PREVIEW=160;
 records.forEach(function(r){
@@ -321,6 +350,7 @@ else{textEl.textContent=textEl.getAttribute("data-full");e.target.textContent="S
 });
 
 var apiData=null;
+var auditsChartObj=null;
 var executionChartObj=null;
 var creativeChartObj=null;
 var defaultIndices=[];
@@ -382,29 +412,85 @@ document.getElementById("statCreative").textContent=grandCreative;
 if(captionEl)captionEl.textContent="Totals across every audit week on record — grows automatically as new weeks are added.";
 }
 
+renderTrend("auditsTrend",chartTotals);
 renderTrend("executionTrend",chartExecution);
 renderTrend("creativeTrend",chartCreative);
 
+if(auditsChartObj)auditsChartObj.destroy();
 if(executionChartObj)executionChartObj.destroy();
 if(creativeChartObj)creativeChartObj.destroy();
-executionChartObj=renderChart("executionChart","executionSkeleton",chartLabels,chartExecution,chartTotals,"#4f46e5","#7c7ff2",indices);
-creativeChartObj=renderChart("creativeChart","creativeSkeleton",chartLabels,chartCreative,chartTotals,"#db2777","#f0479f",indices);
+auditsChartObj=renderChart({canvasId:"auditsChart",skeletonId:"auditsSkeleton",labels:chartLabels,values:chartTotals,totals:chartTotals,colorTop:"#0f172a",colorBottom:"#475569",indices:indices,type:"bar",filterKey:"all",tooltipLabel:totalTooltip});
+executionChartObj=renderChart({canvasId:"executionChart",skeletonId:"executionSkeleton",labels:chartLabels,values:chartExecution,totals:chartTotals,colorTop:"#4f46e5",colorBottom:"#7c7ff2",indices:indices,type:"line",filterKey:"execution",tooltipLabel:flagTooltip});
+creativeChartObj=renderChart({canvasId:"creativeChart",skeletonId:"creativeSkeleton",labels:chartLabels,values:chartCreative,totals:chartTotals,colorTop:"#db2777",colorBottom:"#f0479f",indices:indices,type:"line",filterKey:"creative",tooltipLabel:flagTooltip});
 
 var resetBtn=document.getElementById("resetCompare");
 if(isComparison)resetBtn.classList.add("visible");else resetBtn.classList.remove("visible");
-document.querySelector(".page-header p").textContent=isComparison?"Comparing a selected week against the current week":"Execution & Creative flags for the current and prior 2 audit weeks";
+document.querySelector(".page-header p").textContent=isComparison?"Comparing a selected week against the current week":"Audit volume, execution & creative flags for the current and prior 2 audit weeks";
 }
 
-function renderChart(canvasId,skeletonId,labels,values,totals,colorTop,colorBottom,indices){
-var canvas=document.getElementById(canvasId);
+// Bar-chart tooltip: total records audited that week (no flag rate to show).
+function totalTooltip(item){
+return item.raw+" record"+(item.raw===1?"":"s")+" audited";
+}
+// Line-chart tooltip: flags out of that week's total, as a percentage.
+function flagTooltip(item,totals){
+var total=totals[item.dataIndex]||0;
+var rate=total>0?Math.round((item.raw/total)*100):0;
+return item.raw+" flags — "+rate+"% of "+total+" records";
+}
+
+function renderChart(opts){
+var canvas=document.getElementById(opts.canvasId);
 var ctx=canvas.getContext("2d");
-var lastIndex=values.length-1;
-var sk=document.getElementById(skeletonId);
+var lastIndex=opts.values.length-1;
+var sk=document.getElementById(opts.skeletonId);
 if(sk)sk.style.display="flex";
+var isLine=opts.type==="line";
+var dataset;
+if(isLine){
+dataset={
+label:"Flags",
+data:opts.values,
+borderColor:opts.colorTop,
+backgroundColor:function(context){
+var chart=context.chart,chartArea=chart.chartArea;
+if(!chartArea)return hexToRgba(opts.colorTop,0.15);
+return makeGradient(chart.ctx,chartArea,hexToRgba(opts.colorTop,0.32),hexToRgba(opts.colorTop,0.02));
+},
+fill:true,
+tension:0.35,
+borderWidth:2.5,
+pointRadius:function(context){return context.dataIndex===lastIndex?5:3.5;},
+pointHoverRadius:6,
+pointBackgroundColor:opts.colorTop,
+pointBorderColor:"#fff",
+pointBorderWidth:2
+};
+}else{
+dataset={
+label:"Records",
+data:opts.values,
+backgroundColor:function(context){
+var i=context.dataIndex,chart=context.chart,ctx2=chart.ctx,chartArea=chart.chartArea;
+if(!chartArea)return opts.colorTop;
+if(i===lastIndex)return makeGradient(ctx2,chartArea,opts.colorTop,opts.colorBottom);
+return hexToRgba(opts.colorTop,0.28);
+},
+borderRadius:8,
+maxBarThickness:72
+};
+}
 return new Chart(ctx,{
-type:"bar",
-data:{labels:labels,datasets:[{label:"Flags",data:values,backgroundColor:function(context){var i=context.dataIndex;var chart=context.chart;var ctx2=chart.ctx;var chartArea=chart.chartArea;if(!chartArea)return colorTop;if(i===lastIndex)return makeGradient(ctx2,chartArea,colorTop,colorBottom);return hexToRgba(colorTop,0.28);},borderRadius:8,maxBarThickness:72}]},
-options:{responsive:true,maintainAspectRatio:false,onClick:function(evt,elements){if(elements.length>0)openModal(indices[elements[0].index]);},animation:{onComplete:function(){if(sk)sk.style.display="none";}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false,callbacks:{label:function(item){var total=totals[item.dataIndex]||0;var rate=total>0?Math.round((item.raw/total)*100):0;return item.raw+" flags — "+rate+"% of "+total+" records";}}}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}}
+type:isLine?"line":"bar",
+data:{labels:opts.labels,datasets:[dataset]},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+onClick:function(evt,elements,chart){var points=chart.getElementsAtEventForMode(evt,"index",{intersect:false},true);if(points.length>0)openModal(opts.indices[points[0].index],opts.filterKey);},
+animation:{onComplete:function(){if(sk)sk.style.display="none";}},
+plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false,callbacks:{label:function(item){return opts.tooltipLabel(item,opts.totals);}}}},
+scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}
+}
 });
 }
 
