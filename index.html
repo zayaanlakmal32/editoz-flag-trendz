@@ -9,7 +9,7 @@
 <style>
 :root{--ink:#14161a;--muted:#6b7280;--bg:#f4f5f7;--card:#ffffff;--border:#e8e9ec;--shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);}
 *{box-sizing:border-box;}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;color:var(--ink);-webkit-font-smoothing:antialiased;background:radial-gradient(900px 420px at 50% -10%,rgba(79,70,229,.14),transparent 60%),radial-gradient(750px 380px at 105% 0%,rgba(219,39,119,.10),transparent 55%),radial-gradient(600px 320px at -5% 30%,rgba(79,70,229,.06),transparent 55%),linear-gradient(180deg,#f8f9fb 0%,#eef0f4 100%);background-attachment:fixed;min-height:100vh;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;color:var(--ink);-webkit-font-smoothing:antialiased;background-image:radial-gradient(circle at 1px 1px,rgba(20,22,26,.035) 1px,transparent 0),radial-gradient(950px 460px at 50% -12%,rgba(79,70,229,.17),transparent 60%),radial-gradient(780px 400px at 108% -2%,rgba(219,39,119,.12),transparent 55%),radial-gradient(680px 360px at -6% 38%,rgba(13,148,136,.11),transparent 55%),linear-gradient(180deg,#f9fafb 0%,#edeff3 100%);background-size:22px 22px,auto,auto,auto,auto;background-attachment:fixed;min-height:100vh;}
 .topbar{background:rgba(255,255,255,.75);backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;}
 .logo-pill{display:inline-flex;align-items:center;gap:9px;background:#131417;border-radius:999px;padding:6px 16px 6px 6px;box-shadow:0 1px 2px rgba(16,24,40,.14),0 1px 1px rgba(0,0,0,.2);}
 .logo-icon{width:28px;height:28px;border-radius:50%;background:#232429;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);}
@@ -23,9 +23,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 #status{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;padding:12px 16px;border-radius:10px;font-size:13.5px;margin-bottom:20px;display:none;}
 #status.visible{display:block;}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;}
-.chart-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 24px 12px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--border);border-radius:16px;padding:24px 24px 12px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease;}
 .chart-card:hover{transform:translateY(-3px);box-shadow:0 2px 6px rgba(16,24,40,.07),0 18px 36px rgba(16,24,40,.11);}
 .chart-card-wide{margin-bottom:20px;}
+.chart-card-audits{border-top-color:#0d9488;}
+.chart-card-execution{border-top-color:#4f46e5;}
+.chart-card-creative{border-top-color:#db2777;}
 .chart-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
 .chart-card-head h2{font-size:14.5px;font-weight:600;margin:0;display:flex;align-items:center;gap:8px;}
 .badge{font-size:11px;font-weight:600;color:var(--muted);background:#f2f3f5;padding:4px 9px;border-radius:999px;letter-spacing:.01em;}
@@ -34,7 +37,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .trend.down{color:#0f7a47;background:#ecfdf3;}
 .trend.flat{color:var(--muted);background:#f2f3f5;}
 .trend.neutral{color:#0d9488;background:#f0fdfa;}
-.chart-wrap{position:relative;height:260px;}
+.chart-wrap{position:relative;height:260px;background:linear-gradient(180deg,#fbfcfe,#f8f9fc);border:1px solid #eef0f3;border-radius:12px;padding:14px 12px 6px;}
+.chart-wrap canvas{filter:drop-shadow(0 6px 14px rgba(16,24,40,.07));}
 .older-weeks{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease;}
 .older-weeks:hover{transform:translateY(-2px);box-shadow:0 2px 6px rgba(16,24,40,.07),0 16px 32px rgba(16,24,40,.10);}
 .older-weeks label{font-size:12.5px;color:var(--ink);font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:9px;}
@@ -171,7 +175,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="stat stat-creative"><div class="stat-icon">🎨</div><div class="stat-text"><span class="stat-value" id="statCreativeCompare">–</span><span class="stat-label">Creative Flags</span></div></div>
 </div>
 </div>
-<div class="chart-card chart-card-wide">
+<div class="chart-card chart-card-wide chart-card-audits">
 <div class="chart-card-head"><h2>📊 Overall Audits</h2><span id="auditsTrend"></span></div>
 <div class="chart-wrap">
 <div class="skeleton" id="auditsSkeleton"><div></div><div></div><div></div></div>
@@ -180,7 +184,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 <div class="hint">Click a bar to see every record audited that week</div>
 </div>
 <div class="grid">
-<div class="chart-card">
+<div class="chart-card chart-card-execution">
 <div class="chart-card-head"><h2>⚙️ Execution Flags</h2><span id="executionTrend"></span></div>
 <div class="chart-wrap">
 <div class="skeleton" id="executionSkeleton"><div></div><div></div><div></div></div>
@@ -188,7 +192,7 @@ footer{text-align:center;color:#9ca3af;font-size:12px;margin-top:36px;}
 </div>
 <div class="hint">Click a point to see the flagged execution records</div>
 </div>
-<div class="chart-card">
+<div class="chart-card chart-card-creative">
 <div class="chart-card-head"><h2>🎨 Creative Flags</h2><span id="creativeTrend"></span></div>
 <div class="chart-wrap">
 <div class="skeleton" id="creativeSkeleton"><div></div><div></div><div></div></div>
@@ -516,7 +520,8 @@ return makeGradient(chart.ctx,chartArea,hexToRgba(opts.colorTop,0.32),hexToRgba(
 },
 fill:true,
 tension:0.35,
-borderWidth:2.5,
+cubicInterpolationMode:"monotone",
+borderWidth:3,
 pointRadius:function(context){return context.dataIndex===lastIndex?5:3.5;},
 pointHoverRadius:6,
 pointBackgroundColor:opts.colorTop,
@@ -544,9 +549,9 @@ options:{
 responsive:true,
 maintainAspectRatio:false,
 onClick:function(evt,elements,chart){var points=chart.getElementsAtEventForMode(evt,"index",{intersect:false},true);if(points.length>0)openModal(opts.indices[points[0].index],opts.filterKey);},
-animation:{onComplete:function(){if(sk)sk.style.display="none";}},
-plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161a",padding:10,cornerRadius:8,displayColors:false,callbacks:{label:function(item){return opts.tooltipLabel(item,opts.totals);}}}},
-scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#9ca3af",font:{size:12}},grid:{color:"#eef0f2"}},x:{ticks:{color:"#4b5563",font:{size:12,weight:"600"}},grid:{display:false}}}
+animation:{duration:700,easing:"easeOutQuart",onComplete:function(){if(sk)sk.style.display="none";}},
+plugins:{legend:{display:false},tooltip:{backgroundColor:"#14161aee",titleColor:opts.colorTop,titleFont:{size:11,weight:"700"},bodyFont:{size:12.5,weight:"600"},padding:12,cornerRadius:10,displayColors:false,caretSize:6,callbacks:{title:function(items){return items[0].label;},label:function(item){return opts.tooltipLabel(item,opts.totals);}}}},
+scales:{y:{beginAtZero:true,border:{display:false},ticks:{precision:0,color:"#9ca3af",font:{size:11.5},padding:8},grid:{color:"#eef0f2",drawTicks:false}},x:{border:{display:false},ticks:{color:"#4b5563",font:{size:12,weight:"700"},padding:6},grid:{display:false}}}
 }
 });
 }
