@@ -338,6 +338,17 @@ footer{text-align:center;color:#6b7280;font-size:12px;margin-top:36px;}
 @media (max-width:480px){.tabs{width:100%;}.tab-btn{flex:1;padding:9px 10px;}}
 @media (max-width:480px){.topbar{padding:16px 20px;}.page{padding:28px 16px 48px;}.stat-strip{grid-template-columns:1fr;}.summary-grid{grid-template-columns:1fr 1fr;}}
 
+/* Embed mode — for iframing a single tab (e.g. the Weekly Leaderboard) into
+another site's dashboard. Hides everything that only makes sense as part of
+the full standalone page (topbar, page title, tab strip, footer, the splash
+screen) and lets the remaining tab panel fill the iframe edge-to-edge
+instead of sitting inside the normal centered, padded, max-width page shell. */
+body.embed-mode{background:var(--bg);}
+body.embed-mode #splashScreen{display:none!important;}
+body.embed-mode .topbar,body.embed-mode .page-header,body.embed-mode .tabs,body.embed-mode footer{display:none!important;}
+body.embed-mode .page{max-width:none;margin:0;padding:14px;}
+body.embed-mode #status{margin-top:0;}
+
 /* Print report — hidden on screen entirely; only exists to be isolated and
 shown when window.print() fires. Single-page-first layout (banner + KPIs + a
 2-column grid + a 2-up Top Performers grid + a Pod breakdown) rather than a
@@ -821,6 +832,25 @@ delay for an entrance rather than everything popping in at once. */
 <p class="print-report-footer"><span>Generated from the Editoz Flag Trends Dashboard</span><span>editoz.club</span></p>
 </div>
 <script>
+// ---- Embed mode — lets another site (e.g. the main product dashboard)
+// iframe in just one tab of this page instead of the whole thing, with no
+// code of ours to copy/paste/maintain on their end. Visiting with
+// ?embed=leaderboard (or ?embed=topperf / ?embed=dashboard) hides the
+// topbar, page header, and tab strip, skips the welcome splash entirely,
+// and jumps straight to that tab so it drops cleanly into an iframe sized
+// to just that card. The embedded page still pulls live data from Notion on
+// its own — there's nothing to keep in sync, since it's the real page
+// running, just with the surrounding chrome hidden.
+var EMBED_TAB_MAP={leaderboard:"leaderboard",topperf:"topperf",dashboard:"dashboard"};
+var embedParam=new URLSearchParams(window.location.search).get("embed");
+var embedTab=embedParam&&EMBED_TAB_MAP[embedParam]?EMBED_TAB_MAP[embedParam]:null;
+if(embedTab){
+document.body.classList.add("embed-mode");
+document.body.setAttribute("data-embed-tab",embedTab);
+// switchTab is a function declaration further down this same script, so
+// it's hoisted and callable here regardless of source order.
+switchTab(embedTab);
+}
 function ordinal(n){var s=["th","st","nd","rd"];var v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
 function fmtDate(d){return d.toLocaleString("en-US",{month:"long"})+" "+ordinal(d.getDate());}
 var MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
