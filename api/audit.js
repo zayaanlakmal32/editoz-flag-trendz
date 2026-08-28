@@ -46,6 +46,262 @@ function extractGoalAchieved(props) {
   return null;
 }
 
+function propertyNumber(prop) {
+  if (!prop) return null;
+  if (prop.type === "number" && typeof prop.number === "number") return prop.number;
+  if (prop.type === "formula" && typeof prop.formula?.number === "number") return prop.formula.number;
+  if (prop.type === "rollup" && typeof prop.rollup?.number === "number") return prop.rollup.number;
+  return null;
+}
+
+function propertyText(prop) {
+  if (!prop) return null;
+  if (prop.type === "select") return prop.select?.name || null;
+  if (prop.type === "status") return prop.status?.name || null;
+  if (prop.type === "multi_select") return prop.multi_select?.map((item) => item.name).join(", ") || null;
+  if (prop.type === "formula" && typeof prop.formula?.string === "string") return prop.formula.string;
+  if (prop.type === "rich_text") return prop.rich_text?.map((t) => t.plain_text).join("") || null;
+  return null;
+}
+
+function inferGoalUnit(text) {
+  const value = String(text || "").toLowerCase();
+  if (/\b(?:ops?|operations?)\b/.test(value)) return "ops";
+  if (/\bleads?\b/.test(value)) return "leads";
+  if (/\bviews?\b/.test(value)) return "views";
+  if (/\bfollowers?\b/.test(value)) return "followers";
+  if (/\bsubscribers?\b/.test(value)) return "subscribers";
+  if (/\b(?:call\s*)?bookings?\b/.test(value)) return "bookings";
+  return null;
+}
+
+// Goal setups differ by client (ops, leads, views, followers, bookings).
+// Prefer a direct numeric Goal Progress/% formula. Otherwise pair structured
+// target + actual fields, including M1/M2/M3 Actual totals for 90-day goals.
+function extractGoalProgress(props, source = "project_tracker") {
+  const numeric = Object.entries(props).map(([name, prop]) => ({
+    name,
+    lower: name.toLowerCase(),
+    value: propertyNumber(prop),
+  })).filter((field) => typeof field.value === "number");
+  const goalTypeEntry = Object.entries(props).find(([name]) => /goal.*(?:type|metric|category)|(?:type|metric|category).*goal/i.test(name));
+  const goalType = goalTypeEntry ? propertyText(goalTypeEntry[1]) : null;
+  const goalUnit = inferGoalUnit(goalType);
+
+  const directPercent = numeric.find((field) =>
+    /goal/.test(field.lower) && /(progress|percent|percentage|%)/.test(field.lower) &&
+    !/(target|actual|delivered)/.test(field.lower)
+  );
+  const opTarget = (!goalUnit || goalUnit === "ops") ? numeric.find((field) =>
+    field.value > 0 && /\bops?\b.*\btarget\b|\btarget\b.*\bops?\b/.test(field.lower)
+  ) : null;
+  const ninetyDayTarget = numeric.find((field) =>
+    field.value > 0 && /90[-\s]*(?:day|days|d).*\b(?:goal|target)\b|\b(?:goal|target)\b.*90[-\s]*(?:day|days|d)/.test(field.lower) &&
+    (!goalUnit || !inferGoalUnit(field.name) || inferGoalUnit(field.name) === goalUnit)
+  );
+  const namedGoalTarget = numeric.find((field) =>
+    field.value > 0 && /\bgoal\b.*\btarget\b|\btarget\b.*\bgoal\b/.test(field.lower) &&
+    !/(progress|percent|percentage)/.test(field.lower) &&
+    (!goalUnit || !inferGoalUnit(field.name) || inferGoalUnit(field.name) === goalUnit)
+  );
+  const genericTarget = numeric.find((field) =>
+    field.value > 0 && /\btarget\b/.test(field.lower) &&
+    !/(date|day|days|left|actual|delivered|progress|percent|percentage)/.test(field.lower) &&
+    (!goalUnit || !inferGoalUnit(field.name) || inferGoalUnit(field.name) === goalUnit)
+  );
+  const targetField = opTarget || ninetyDayTarget || namedGoalTarget || genericTarget || null;
+  const targetUnit = inferGoalUnit([goalType, targetField?.name].filter(Boolean).join(" "));
+
+  let actualFields = [];
+  if (opTarget) {
+    const opActual = numeric.find((field) =>
+      /\bops?\b.*\b(?:delivered|actual)\b|\b(?:delivered|actual)\b.*\bops?\b/.test(field.lower)
+    );
+    if (opActual) actualFields = [opActual];
+  }
+  if (!actualFields.length && (ninetyDayTarget || namedGoalTarget)) {
+    const monthlyActuals = numeric.filter((field) =>
+      /\b(?:m|month)\s*[123]\b.*\bactual\b|\bactual\b.*\b(?:m|month)\s*[123]\b/.test(field.lower)
+    );
+    if (monthlyActuals.length) actualFields = monthlyActuals;
+  }
+  if (!actualFields.length) {
+    const actualCandidates = numeric.filter((field) =>
+      /\b(?:goal|total)\b.*\b(?:actual|delivered|current)\b|\b(?:actual|delivered|current)\b.*\b(?:goal|total)\b/.test(field.lower)
+    ).concat(numeric.filter((field) =>
+      /\b(?:actual|delivered)\b/.test(field.lower) && !/(date|day|days|target)/.test(field.lower)
+    ));
+    const actual = actualCandidates.find((field) => {
+      const unit = inferGoalUnit(field.name);
+      return !targetUnit || !unit || unit === targetUnit;
+    });
+    if (actual) actualFields = [actual];
+  }
+
+  let actual = actualFields.length ? actualFields.reduce((sum, field) => sum + field.value, 0) : null;
+  let target = targetField?.value ?? null;
+  const directPercentValue = directPercent
+    ? (directPercent.value >= 0 && directPercent.value <= 1 ? directPercent.value * 100 : directPercent.value)
+    : null;
+  let percent = directPercentValue ?? (actual !== null && target > 0 ? (actual / target) * 100 : null);
+
+  // A direct progress formula is authoritative. Drop a nearby actual/target
+  // pair if its ratio proves those fields describe a different metric.
+  if (directPercent && actual !== null && target > 0 && Math.abs((actual / target) * 100 - percent) > 1) {
+    actual = null;
+    target = null;
+    actualFields = [];
+  }
+  if (percent === null && actual === null && target === null) return null;
+
+  const sourceNames = [target !== null ? targetField?.name : null, ...actualFields.map((field) => field.name), directPercent?.name].filter(Boolean);
+  const unit = inferGoalUnit([goalType, ...sourceNames].join(" "));
+  return {
+    actual,
+    target,
+    percent,
+    unit,
+    label: goalType || unit || "Goal progress",
+    source,
+    sourceFields: sourceNames,
+  };
+}
+
+function parseCompactNumber(value) {
+  const match = String(value || "").trim().match(/^([\d,.]+)\s*([km])?$/i);
+  if (!match) return null;
+  const number = Number(match[1].replace(/,/g, ""));
+  if (!Number.isFinite(number)) return null;
+  return number * (match[2]?.toLowerCase() === "k" ? 1e3 : match[2]?.toLowerCase() === "m" ? 1e6 : 1);
+}
+
+function goalPercentFromClause(text) {
+  const clauses = String(text || "").split(/[.!?\n]+/);
+  for (const clause of clauses) {
+    const unit = inferGoalUnit(clause);
+    if (!unit || !/\b(?:goal|target)\b/i.test(clause)) continue;
+    const match = clause.match(/(\d+(?:\.\d+)?)\s*%\s*(?:delivered|complete|achieved)/i);
+    if (match) return { percent: Number(match[1]), unit };
+  }
+  return null;
+}
+
+// Older tracker rows do not always expose structured actual/target fields.
+// Audit Notes already contain audited goal facts; parse only goal-specific
+// phrases as a fallback (never arbitrary numbers from the note).
+function inferGoalProgressFromNotes(notes) {
+  const text = (notes || []).map((note) => note.value || "").join(" ");
+  if (!text) return null;
+  const unitPattern = "(ops?|operations?|leads?|accumulated[-\\s]+views?|views?|followers?|subscribers?|(?:call\\s*)?bookings?)";
+  let match = text.match(new RegExp("([\\d,.]+[km]?)\\s*\\/\\s*([\\d,.]+[km]?)\\s*" + unitPattern, "i"));
+  if (!match) {
+    match = text.match(new RegExp("([\\d,.]+[km]?)\\s+of\\s+(?:the\\s+)?([\\d,.]+[km]?)\\s+" + unitPattern, "i"));
+  }
+  if (match) {
+    const actual = parseCompactNumber(match[1]);
+    const target = parseCompactNumber(match[2]);
+    if (actual !== null && target > 0) {
+      const unit = inferGoalUnit(match[3]);
+      return { actual, target, percent: (actual / target) * 100, unit, label: unit || "Goal progress", source: "audit_notes", sourceFields: [] };
+    }
+  }
+
+  match = text.match(new RegExp("([\\d,.]+[km]?)\\s+" + unitPattern + "\\s+(?:delivered|logged)\\s+against\\s+(?:the\\s+)?([\\d,.]+[km]?)\\s+(?:90[- ]day\\s+)?(?:goal|target)", "i"));
+  if (match) {
+    const actual = parseCompactNumber(match[1]);
+    const target = parseCompactNumber(match[3]);
+    if (actual !== null && target > 0) {
+      const unit = inferGoalUnit(match[2]);
+      return { actual, target, percent: (actual / target) * 100, unit, label: unit || "Goal progress", source: "audit_notes", sourceFields: [] };
+    }
+  }
+
+  match = text.match(new RegExp("(\\d+(?:\\.\\d+)?)%\\s+of\\s+(?:the\\s+)?([\\d,.]+[km]?)\\s*[- ]?" + unitPattern + "\\s+goal", "i"));
+  if (match) {
+    const target = parseCompactNumber(match[2]);
+    const unit = inferGoalUnit(match[3]);
+    if (target > 0) {
+      return { actual: null, target, percent: Number(match[1]), unit, label: unit || "Goal progress", source: "audit_notes", sourceFields: [] };
+    }
+  }
+
+  match = text.match(new RegExp("(\\d+(?:\\.\\d+)?)%\\s+delivered\\s+against\\s+(?:the\\s+)?([\\d,.]+[km]?)\\s*(?:hot[-\\s]+)?" + unitPattern + "\\s+target", "i"));
+  if (match) {
+    const target = parseCompactNumber(match[2]);
+    const unit = inferGoalUnit(match[3]);
+    if (target > 0) {
+      return { actual: null, target, percent: Number(match[1]), unit, label: unit || "Goal progress", source: "audit_notes", sourceFields: [] };
+    }
+  }
+
+  let targetMatch = text.match(new RegExp(unitPattern + "\\s+(?:goal|target)\\s+(?:of\\s+)?\\(?([\\d,.]+[km]?)", "i"));
+  if (!targetMatch) {
+    targetMatch = text.match(new RegExp("(?:goal|target)\\s+of\\s+([\\d,.]+[km]?)\\s+" + unitPattern, "i"));
+    if (targetMatch) targetMatch = [targetMatch[0], targetMatch[2], targetMatch[1]];
+  }
+  if (targetMatch) {
+    const unit = inferGoalUnit(targetMatch[1]);
+    const target = parseCompactNumber(targetMatch[2]);
+    let actualMatch = text.match(/(?:m[123]\s+)?actual\s+(?:sits\s+at|is|:)?\s*([\d,.]+[km]?)/i);
+    if (!actualMatch) {
+      const loggedMatch = text.match(new RegExp("(?:only\\s+)?([\\d,.]+[km]?)\\s+" + unitPattern + "\\s+(?:delivered|logged)", "i"));
+      if (loggedMatch && inferGoalUnit(loggedMatch[2]) === unit) actualMatch = [loggedMatch[0], loggedMatch[1]];
+    }
+    const actual = actualMatch ? parseCompactNumber(actualMatch[1]) : null;
+    const clauseProgress = goalPercentFromClause(text);
+    const percent = actual !== null && target > 0 ? (actual / target) * 100 : clauseProgress?.percent ?? null;
+    if (target > 0 && (actual !== null || percent !== null)) {
+      return { actual, target, percent, unit, label: unit || "Goal progress", source: "audit_notes", sourceFields: [] };
+    }
+  }
+
+  const clauseProgress = goalPercentFromClause(text);
+  if (clauseProgress) {
+    return { actual: null, target: null, percent: clauseProgress.percent, unit: clauseProgress.unit, label: clauseProgress.unit, source: "audit_notes", sourceFields: [] };
+  }
+  if (/goal\s+(?:is\s+)?already\s+(?:achieved|exceeded)|goal\s+already\s+achieved/i.test(text)) {
+    return { actual: null, target: null, percent: 100, unit: inferGoalUnit(text), label: inferGoalUnit(text) || "Goal progress", source: "audit_notes", sourceFields: [] };
+  }
+  return null;
+}
+
+function mergeGoalProgress(primary, fallback) {
+  if (!primary) return fallback || null;
+  if (!fallback) return primary;
+
+  const hasPercent = (progress) =>
+    typeof progress?.percent === "number" && Number.isFinite(progress.percent);
+  const selected = hasPercent(primary) ? primary : hasPercent(fallback) ? fallback : primary;
+  const other = selected === primary ? fallback : primary;
+
+  // Keep each snapshot atomic. Only borrow actual/target from the other
+  // source when its computed percentage confirms it describes the same
+  // snapshot; otherwise the displayed fraction could contradict the bar.
+  if (
+    hasPercent(selected) &&
+    (selected.actual === null || selected.target === null) &&
+    typeof other.actual === "number" &&
+    typeof other.target === "number" &&
+    other.target > 0
+  ) {
+    const candidate = {
+      ...selected,
+      actual: selected.actual ?? other.actual,
+      target: selected.target ?? other.target,
+      unit: selected.unit || other.unit,
+      label: selected.label || other.label,
+    };
+    const candidatePercent = (candidate.actual / candidate.target) * 100;
+    if (candidate.target > 0 && Math.abs(candidatePercent - selected.percent) <= 1) {
+      return {
+        ...candidate,
+      };
+    }
+  }
+
+  return selected;
+}
+
 // Each audit record links to a page in the "Project Tracker" database, which
 // is where the client's program ("Accelerate" vs "DFY") and assigned PO
 // ("PO Name") actually live — the audit database itself doesn't store either
@@ -200,7 +456,8 @@ function extractLeaderboardFields(props) {
   const maxPostViews = typeof maxViewsFormula?.number === "number" ? maxViewsFormula.number : null;
   const pod = props[POD_PROPERTY]?.select?.name || null;
   const goalAchieved = extractGoalAchieved(props);
-  return { bestPostTitle, maxPostViews, goalAchieved, pod };
+  const goalProgress = extractGoalProgress(props, "audit_record");
+  return { bestPostTitle, maxPostViews, goalAchieved, goalProgress, pod };
 }
 
 // Builds a map of Project Tracker page ID -> { category, po }. Wrapped so a
@@ -235,6 +492,7 @@ async function fetchProjectTrackerMap(token) {
         category: props["Project Type"]?.select?.name || null,
         po: props["PO Name"]?.select?.name || null,
         goalAchieved: extractGoalAchieved(props),
+        goalProgress: extractGoalProgress(props),
       });
     }
     if (body.has_more && body.next_cursor) cursor = body.next_cursor;
@@ -335,6 +593,11 @@ export default async function handler(req, res) {
     // real records against the dashboard's numbers. Trusting the exact
     // stored date is the only way to keep counts accurate; if a specific
     // record's date is wrong, that's a data entry fix in Notion itself.
+    const allWeekStarts = allResults
+      .map((page) => page.properties[WEEK_PROPERTY]?.date?.start)
+      .filter(Boolean)
+      .sort();
+    const latestWeekStart = allWeekStarts[allWeekStarts.length - 1] || null;
     const weekMap = new Map();
     for (const page of allResults) {
       const props = page.properties;
@@ -377,8 +640,20 @@ export default async function handler(req, res) {
       const po = trackerInfo?.po || null;
       if (category) recordsWithResolvedCategory += 1;
 
-      const { bestPostTitle, maxPostViews, goalAchieved: auditGoalAchieved, pod } = extractLeaderboardFields(props);
-      const goalAchieved = auditGoalAchieved ?? trackerInfo?.goalAchieved ?? null;
+      const {
+        bestPostTitle,
+        maxPostViews,
+        goalAchieved: auditGoalAchieved,
+        goalProgress: auditGoalProgress,
+        pod,
+      } = extractLeaderboardFields(props);
+      // Project Tracker holds the client's current values, not historical
+      // snapshots. Use it only for the newest audit week so old trends stay
+      // anchored to the audit record and its contemporaneous notes.
+      const currentTrackerInfo = weekStart === latestWeekStart ? trackerInfo : null;
+      const goalAchieved = auditGoalAchieved ?? currentTrackerInfo?.goalAchieved ?? null;
+      const structuredGoalProgress = mergeGoalProgress(auditGoalProgress, currentTrackerInfo?.goalProgress);
+      const goalProgress = mergeGoalProgress(structuredGoalProgress, inferGoalProgressFromNotes(notes));
 
       bucket.records.push({
         title,
@@ -393,6 +668,7 @@ export default async function handler(req, res) {
         bestPostTitle,
         maxPostViews,
         goalAchieved,
+        goalProgress,
         pod,
       });
     }
