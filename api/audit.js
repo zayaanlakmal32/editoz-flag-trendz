@@ -20,6 +20,10 @@ const BEST_POST_TITLE_PROPERTY = "🏆 Best Post Title";
 const MAX_POST_VIEWS_PROPERTY = "🔝 Max Post Views";
 const POD_PROPERTY = "Pod";
 
+// Notion property names sometimes carry an emoji prefix. Match by words so
+// "Goal Achieved", "🎯 Goal Achieved", etc. all work without a deploy.
+const GOAL_ACHIEVED_PROPERTY_PATTERN = /goal\s*achiev(?:ed|ement)?/i;
+
 // Each audit record links to a page in the "Project Tracker" database, which
 // is where the client's program ("Accelerate" vs "DFY") and assigned PO
 // ("PO Name") actually live — the audit database itself doesn't store either
@@ -173,7 +177,25 @@ function extractLeaderboardFields(props) {
   const maxViewsFormula = props[MAX_POST_VIEWS_PROPERTY]?.formula;
   const maxPostViews = typeof maxViewsFormula?.number === "number" ? maxViewsFormula.number : null;
   const pod = props[POD_PROPERTY]?.select?.name || null;
-  return { bestPostTitle, maxPostViews, pod };
+  let goalAchieved = null;
+  for (const [name, prop] of Object.entries(props)) {
+    if (!GOAL_ACHIEVED_PROPERTY_PATTERN.test(name) || !prop) continue;
+    if (prop.type === "checkbox") goalAchieved = prop.checkbox;
+    else if (prop.type === "number") goalAchieved = prop.number;
+    else if (prop.type === "select") goalAchieved = prop.select?.name || null;
+    else if (prop.type === "status") goalAchieved = prop.status?.name || null;
+    else if (prop.type === "formula") {
+      const formula = prop.formula;
+      if (typeof formula?.number === "number") goalAchieved = formula.number;
+      else if (typeof formula?.boolean === "boolean") goalAchieved = formula.boolean;
+      else if (typeof formula?.string === "string") goalAchieved = formula.string;
+    } else if (prop.type === "rollup") {
+      const rollup = prop.rollup;
+      if (typeof rollup?.number === "number") goalAchieved = rollup.number;
+    }
+    break;
+  }
+  return { bestPostTitle, maxPostViews, goalAchieved, pod };
 }
 
 // Builds a map of Project Tracker page ID -> { category, po }. Wrapped so a
@@ -349,7 +371,7 @@ export default async function handler(req, res) {
       const po = trackerInfo?.po || null;
       if (category) recordsWithResolvedCategory += 1;
 
-      const { bestPostTitle, maxPostViews, pod } = extractLeaderboardFields(props);
+      const { bestPostTitle, maxPostViews, goalAchieved, pod } = extractLeaderboardFields(props);
 
       bucket.records.push({
         title,
@@ -363,6 +385,7 @@ export default async function handler(req, res) {
         po,
         bestPostTitle,
         maxPostViews,
+        goalAchieved,
         pod,
       });
     }
