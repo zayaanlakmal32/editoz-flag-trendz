@@ -698,7 +698,7 @@ delay for an entrance rather than everything popping in at once. */
 <h2>📈 Weekly Leaderboard</h2>
 <span class="leaderboard-week" id="leaderboardWeekLabel">–</span>
 </div>
-<p class="leaderboard-subtitle">Every client audited this week, ranked by max post views — mirrors the old Notion performance table.</p>
+<p class="leaderboard-subtitle">Every client audited this week, ranked by goal achieved.</p>
 <div class="leaderboard-toolbar">
 <div class="custom-select" id="leaderboardWeekDropdown">
 <button type="button" class="custom-select-trigger" id="leaderboardWeekTrigger" aria-haspopup="listbox" aria-expanded="false">
@@ -723,7 +723,7 @@ delay for an entrance rather than everything popping in at once. */
 <th>Client</th>
 <th class="leaderboard-col-move">Δ</th>
 <th>Best post title</th>
-<th class="leaderboard-col-num">Max post views</th>
+<th class="leaderboard-col-num">Goal achieved</th>
 <th class="leaderboard-col-trend">Trend</th>
 <th>Product owner</th>
 <th>Pod</th>
@@ -770,7 +770,7 @@ delay for an entrance rather than everything popping in at once. */
 <th>Week</th>
 <th class="leaderboard-col-move">⚙️</th>
 <th class="leaderboard-col-move">🎨</th>
-<th class="leaderboard-col-num">Max views</th>
+<th class="leaderboard-col-num">Goal achieved</th>
 <th>Best post</th>
 </tr>
 </thead>
@@ -1423,6 +1423,40 @@ return LEADERBOARD_PILL_PALETTE[hashStr(name)%LEADERBOARD_PILL_PALETTE.length];
 var selectedLeaderboardWeekIndex=null;
 var leaderboardSortDesc=true;
 
+// "Goal Achieved" can arrive from Notion as a checkbox (bool), a number/
+// percent, or a status/select string depending on how that column is set up.
+// Normalize to: a comparable number for ranking, a presence test for whether
+// a row belongs on the board at all, and an HTML cell for display.
+function goalRaw(r){return r?r.goalAchieved:undefined;}
+function hasGoal(r){var v=goalRaw(r);return v!==null&&v!==undefined&&v!=="";}
+function goalScore(r){
+var v=goalRaw(r);
+if(typeof v==="number")return v;
+if(typeof v==="boolean")return v?1:0;
+if(typeof v==="string"){
+var s=v.trim();
+var num=parseFloat(s.replace(/[,%\s]/g,""));
+if(!isNaN(num))return num;
+if(/^(yes|y|done|complete|completed|achieved|hit|met|true|on\s*track)$/i.test(s))return 1;
+if(/^(no|n|not|missed|incomplete|pending|false|off\s*track)$/i.test(s))return 0;
+return 0.5; // unknown label ranks between met/unmet; title tiebreak keeps order stable
+}
+return 0;
+}
+function goalDisplayHtml(r){
+var v=goalRaw(r);
+if(v===null||v===undefined||v==="")return '<span class="leaderboard-dim">—</span>';
+if(typeof v==="boolean")return v?"✅ Yes":"❌ No";
+if(typeof v==="number")return escapeHtml(numberWithCommas(v));
+return escapeHtml(String(v));
+}
+function goalPlainText(r){
+var v=goalRaw(r);
+if(v===null||v===undefined||v==="")return "";
+if(typeof v==="boolean")return v?"Yes":"No";
+return String(v);
+}
+
 // The "Best Post Title"/"Max Post Views" formulas only give text/a number —
 // they don't carry a link or platform on their own. Matching the number
 // back against this record's own posts[] (already fetched with link+views
@@ -1453,8 +1487,8 @@ return m?m[1].trim():String(title||"").trim();
 // one consistent definition of rank, not whichever way the table happens to
 // be sorted at the moment.
 function rankedRecordsForWeek(weekIdx){
-var records=(recordsByWeek[weekIdx]||[]).filter(function(r){return typeof r.maxPostViews==="number";});
-records.sort(function(a,b){return b.maxPostViews-a.maxPostViews;});
+var records=(recordsByWeek[weekIdx]||[]).filter(hasGoal);
+records.sort(function(a,b){var d=goalScore(b)-goalScore(a);return d!==0?d:String(a.title||"").localeCompare(String(b.title||""));});
 return records;
 }
 function uniqueSorted(arr){
@@ -1499,7 +1533,7 @@ return rows;
 // data."
 function excludedLeaderboardCount(weekIdx){
 var records=recordsByWeek[weekIdx]||[];
-return records.filter(function(r){return typeof r.maxPostViews!=="number";}).length;
+return records.filter(function(r){return !hasGoal(r);}).length;
 }
 function currentLeaderboardWeekIndex(){
 return selectedLeaderboardWeekIndex!==null?selectedLeaderboardWeekIndex:weekLabels.length-1;
@@ -1570,8 +1604,8 @@ var values=[];
 for(var w=0;w<=uptoWeekIdx;w++){
 var records=recordsByWeek[w]||[];
 for(var i=0;i<records.length;i++){
-if(clientBaseName(records[i].title)===baseName&&typeof records[i].maxPostViews==="number"){
-values.push(records[i].maxPostViews);
+if(clientBaseName(records[i].title)===baseName&&hasGoal(records[i])){
+values.push(goalScore(records[i]));
 break;
 }
 }
@@ -1611,7 +1645,7 @@ if(!body)return;
 if(gapNoteEl){
 var excluded=idx>=0?excludedLeaderboardCount(idx):0;
 if(excluded>0){
-gapNoteEl.textContent="⚠️ "+excluded+" client"+(excluded===1?"":"s")+" audited this week aren't shown here — no Max Post Views recorded in Notion.";
+gapNoteEl.textContent="⚠️ "+excluded+" client"+(excluded===1?"":"s")+" audited this week aren't shown here — no Goal Achieved recorded in Notion.";
 gapNoteEl.style.display="block";
 }else{
 gapNoteEl.style.display="none";
@@ -1642,7 +1676,7 @@ return '<tr>'+
 '<td class="leaderboard-client"><button type="button" class="leaderboard-client-btn" data-client="'+escapeAttr(clientBaseName(r.title))+'">'+escapeHtml(r.title)+'</button></td>'+
 '<td class="leaderboard-col-move">'+moveHtml+'</td>'+
 '<td>'+bestHtml+'</td>'+
-'<td class="leaderboard-views">'+numberWithCommas(r.maxPostViews)+'</td>'+
+'<td class="leaderboard-views">'+goalDisplayHtml(r)+'</td>'+
 '<td class="leaderboard-col-trend"><span class="leaderboard-spark" title="Last '+sparkValues.length+' audited weeks">'+sparklineSvg(sparkValues)+'</span></td>'+
 '<td><span class="leaderboard-pill'+(poGap?" leaderboard-pill-gap":"")+'" style="'+(poGap?"":"background:"+poColor.bg+";color:"+poColor.text)+'">'+(poGap?"⚠️ Unassigned":escapeHtml(r.po))+'</span></td>'+
 '<td><span class="leaderboard-pill'+(podGap?" leaderboard-pill-gap":"")+'" style="'+(podGap?"":"background:"+podColor.bg+";color:"+podColor.text)+'">'+(podGap?"⚠️ Missing":escapeHtml(r.pod))+'</span></td>'+
@@ -1652,7 +1686,7 @@ return '<tr>'+
 function leaderboardCsvText(){
 var idx=currentLeaderboardWeekIndex();
 var rows=buildLeaderboardRows(idx);
-var header=["Client","Best Post Title","Max Post Views","Product Owner","Pod"];
+var header=["Client","Best Post Title","Goal Achieved","Product Owner","Pod"];
 function csvEscape(v){
 var s=v===null||v===undefined?"":String(v);
 if(/[",\n]/.test(s))return '"'+s.replace(/"/g,'""')+'"';
@@ -1660,7 +1694,7 @@ return s;
 }
 var lines=[header.map(csvEscape).join(",")];
 rows.forEach(function(r){
-lines.push([r.title,r.bestPostTitle||"",r.maxPostViews,r.po||"Unassigned",r.pod||"Missing"].map(csvEscape).join(","));
+lines.push([r.title,r.bestPostTitle||"",goalPlainText(r),r.po||"Unassigned",r.pod||"Missing"].map(csvEscape).join(","));
 });
 return lines.join("\n");
 }
@@ -2187,7 +2221,7 @@ return '<div class="print-trend-col">'+
 // them; the print report's "Data Gaps" card needs the actual names.
 function excludedLeaderboardClients(weekIdx){
 var records=recordsByWeek[weekIdx]||[];
-return records.filter(function(r){return typeof r.maxPostViews!=="number";}).map(function(r){return r.title;});
+return records.filter(function(r){return !hasGoal(r);}).map(function(r){return r.title;});
 }
 function buildPrintReport(targetIdx){
 var idx=(targetIdx===undefined||targetIdx===null)?weekLabels.length-1:targetIdx;
@@ -2238,9 +2272,9 @@ if(gapNames.length){
 var gapsShown=gapNames.slice(0,6);
 var gapsExtra=gapNames.length-gapsShown.length;
 gapsEl.innerHTML='<ul class="print-gap-list">'+gapsShown.map(function(t){return '<li>'+escapeHtml(clientBaseName(t))+'</li>';}).join("")+'</ul>'+
-(gapsExtra>0?'<p class="print-section-note">+'+gapsExtra+' more missing Max Post Views.</p>':"");
+(gapsExtra>0?'<p class="print-section-note">+'+gapsExtra+' more missing Goal Achieved.</p>':"");
 }else{
-gapsEl.innerHTML='<p class="print-section-note">No audited clients missing Max Post Views.</p>';
+gapsEl.innerHTML='<p class="print-section-note">No audited clients missing Goal Achieved.</p>';
 }
 }
 
@@ -2275,10 +2309,10 @@ var lbNoteEl=document.getElementById("printLeaderboardNote");
 if(lbTable){
 var allRanked=rankedRecordsForWeek(idx);
 var lbRows=allRanked.slice(0,5);
-var lbHtml="<tr><th>#</th><th>Client</th><th>Δ</th><th>Max Views</th><th>PO</th></tr>";
+var lbHtml="<tr><th>#</th><th>Client</th><th>Δ</th><th>Goal Achieved</th><th>PO</th></tr>";
 lbRows.forEach(function(r,i){
 var moveHtml=leaderboardMovementBadge(idx,r,i);
-lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.title)+"</td><td>"+moveHtml+"</td><td>"+numberWithCommas(r.maxPostViews)+"</td><td>"+escapeHtml(r.po||"Unassigned")+"</td></tr>";
+lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.title)+"</td><td>"+moveHtml+"</td><td>"+goalDisplayHtml(r)+"</td><td>"+escapeHtml(r.po||"Unassigned")+"</td></tr>";
 });
 if(!lbRows.length)lbHtml+="<tr><td colspan=\"5\">No ranked posts this week.</td></tr>";
 lbTable.innerHTML=lbHtml;
@@ -2287,7 +2321,7 @@ var remaining=allRanked.length-lbRows.length;
 var excluded=idx>=0?excludedLeaderboardCount(idx):0;
 var noteParts=[];
 if(remaining>0)noteParts.push(remaining+" more ranked client"+(remaining===1?"":"s")+" on the Leaderboard tab");
-if(excluded>0)noteParts.push(excluded+" audited with no Max Post Views");
+if(excluded>0)noteParts.push(excluded+" audited with no Goal Achieved");
 lbNoteEl.textContent=noteParts.length?noteParts.join(" · ")+".":"";
 }
 }
