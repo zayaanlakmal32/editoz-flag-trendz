@@ -188,13 +188,13 @@ table view, so it should look native in whichever theme the page is in. */
 .leaderboard-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;}
 .leaderboard-table{width:100%;min-width:800px;border-collapse:collapse;font-size:13px;table-layout:fixed;}
 .leaderboard-table thead th{text-align:left;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:11px 14px;background:var(--card-alt);border-bottom:1px solid var(--border);white-space:nowrap;}
-.leaderboard-table thead th:nth-child(1){width:16%;}
-.leaderboard-table thead th:nth-child(2){width:6%;}
-.leaderboard-table thead th:nth-child(3){width:22%;}
-.leaderboard-table thead th:nth-child(4){width:12%;}
-.leaderboard-table thead th:nth-child(5){width:11%;}
-.leaderboard-table thead th:nth-child(6){width:16.5%;}
-.leaderboard-table thead th:nth-child(7){width:16.5%;}
+.leaderboard-table thead th:nth-child(1){width:6%;}
+.leaderboard-table thead th:nth-child(2){width:19%;}
+.leaderboard-table thead th:nth-child(3){width:15%;}
+.leaderboard-table thead th:nth-child(4){width:19%;}
+.leaderboard-table thead th:nth-child(5){width:8%;}
+.leaderboard-table thead th:nth-child(6){width:12%;}
+.leaderboard-table thead th:nth-child(7){width:21%;}
 .leaderboard-table thead th.leaderboard-col-num{text-align:right;}
 .leaderboard-table thead th.leaderboard-col-move{text-align:center;}
 .leaderboard-table thead th.leaderboard-col-trend{text-align:center;}
@@ -229,6 +229,15 @@ inheriting the 7-column Leaderboard tab's proportions, which would leave
 .leaderboard-views{font-weight:700;color:var(--ink);text-align:right;}
 .leaderboard-dim{color:var(--muted);}
 .leaderboard-pill{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+.leaderboard-rank{font-size:15px;font-weight:800;text-align:center;}
+.leaderboard-goals{font-weight:800;}
+.leaderboard-goals span{color:var(--muted);font-size:11px;font-weight:600;margin-left:4px;}
+.leaderboard-rate{display:flex;align-items:center;gap:9px;}
+.leaderboard-rate-bar{height:7px;flex:1;min-width:54px;background:var(--tint-soft);border-radius:999px;overflow:hidden;}
+.leaderboard-rate-bar span{display:block;height:100%;border-radius:inherit;}
+.leaderboard-rate-value{width:38px;text-align:right;font-size:12px;font-weight:800;}
+.leaderboard-pods{display:flex;align-items:center;gap:5px;overflow:hidden;}
+.leaderboard-pods .leaderboard-pill{padding:4px 8px;}
 .leaderboard-empty{padding:20px 14px !important;text-align:center;color:var(--muted);font-weight:500 !important;white-space:normal !important;}
 .older-weeks{display:flex;align-items:flex-start;gap:12px;margin-bottom:24px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease,background-color .4s ease,border-color .4s ease;}
 .older-weeks label{padding-top:6px;}
@@ -592,7 +601,7 @@ delay for an entrance rather than everything popping in at once. */
 <div class="tabs" role="tablist">
 <button type="button" class="tab-btn active" id="tabBtnDashboard" role="tab" aria-selected="true">📊 Dashboard</button>
 <button type="button" class="tab-btn" id="tabBtnTopPerf" role="tab" aria-selected="false">🏆 Top Performers</button>
-<button type="button" class="tab-btn" id="tabBtnLeaderboard" role="tab" aria-selected="false">📈 Weekly Leaderboard</button>
+<button type="button" class="tab-btn" id="tabBtnLeaderboard" role="tab" aria-selected="false">🏆 PO Leaderboard</button>
 </div>
 <div id="tabPanelDashboard" class="tab-panel active">
 <div class="summary-card" id="summaryCard">
@@ -695,10 +704,10 @@ delay for an entrance rather than everything popping in at once. */
 <div id="tabPanelLeaderboard" class="tab-panel">
 <div class="leaderboard-card">
 <div class="leaderboard-head">
-<h2>📈 Weekly Leaderboard</h2>
+<h2>🏆 Product Owner Leaderboard</h2>
 <span class="leaderboard-week" id="leaderboardWeekLabel">–</span>
 </div>
-<p class="leaderboard-subtitle">Every client audited this week, ranked by goal achieved.</p>
+<p class="leaderboard-subtitle">Product owners ranked by client goal success rate. Ties favor more goals achieved.</p>
 <div class="leaderboard-toolbar">
 <div class="custom-select" id="leaderboardWeekDropdown">
 <button type="button" class="custom-select-trigger" id="leaderboardWeekTrigger" aria-haspopup="listbox" aria-expanded="false">
@@ -720,13 +729,13 @@ delay for an entrance rather than everything popping in at once. */
 <table class="leaderboard-table">
 <thead>
 <tr>
-<th>Client</th>
-<th class="leaderboard-col-move">Δ</th>
-<th>Best post title</th>
-<th class="leaderboard-col-num">Goal achieved</th>
-<th class="leaderboard-col-trend">Trend</th>
+<th class="leaderboard-col-move">#</th>
 <th>Product owner</th>
-<th>Pod</th>
+<th>Goals hit</th>
+<th>Success rate</th>
+<th class="leaderboard-col-move">Δ</th>
+<th class="leaderboard-col-trend">Trend</th>
+<th>Pods</th>
 </tr>
 </thead>
 <tbody id="leaderboardBody"></tbody>
@@ -770,7 +779,7 @@ delay for an entrance rather than everything popping in at once. */
 <th>Week</th>
 <th class="leaderboard-col-move">⚙️</th>
 <th class="leaderboard-col-move">🎨</th>
-<th class="leaderboard-col-num">Goal achieved</th>
+<th class="leaderboard-col-num">Max views</th>
 <th>Best post</th>
 </tr>
 </thead>
@@ -808,7 +817,7 @@ delay for an entrance rather than everything popping in at once. */
 <span class="item"><span class="swatch creative"></span>Creative Flags</span>
 </div>
 <div class="print-trend-chart" id="printTrendChart"></div>
-<h2>Top 5 — Weekly Leaderboard</h2>
+<h2>Top 5 — PO Leaderboard</h2>
 <table id="printLeaderboardTable"></table>
 <p class="print-section-note" id="printLeaderboardNote"></p>
 </div>
@@ -1482,14 +1491,40 @@ function clientBaseName(title){
 var m=/^(.*?)\s+x\s+[A-Za-z]+\s+\d{1,2},?\s*\d{4}\s*$/i.exec(String(title||"").trim());
 return m?m[1].trim():String(title||"").trim();
 }
-// Rank is always computed best-first (highest views = rank 1) regardless of
-// the display sort toggle — "moved up 3 spots" only means something against
-// one consistent definition of rank, not whichever way the table happens to
-// be sorted at the moment.
-function rankedRecordsForWeek(weekIdx){
-var records=(recordsByWeek[weekIdx]||[]).filter(hasGoal);
-records.sort(function(a,b){var d=goalScore(b)-goalScore(a);return d!==0?d:String(a.title||"").localeCompare(String(b.title||""));});
-return records;
+function goalWasAchieved(r){return goalScore(r)>=1;}
+// One row per PO. Rank by success rate so larger portfolios do not win only
+// because they contain more clients. Equal rates are resolved by goals hit,
+// then portfolio size, then PO name for deterministic movement week-to-week.
+function rankedPOsForWeek(weekIdx,podFilter){
+var records=recordsByWeek[weekIdx]||[];
+var groups={};
+records.forEach(function(r){
+if(!hasGoal(r)||!r.po)return;
+if(podFilter&&r.pod!==podFilter)return;
+var name=String(r.po).trim();
+if(!name)return;
+if(!groups[name])groups[name]={po:name,total:0,achieved:0,pods:{}};
+var g=groups[name];
+g.total+=1;
+if(goalWasAchieved(r))g.achieved+=1;
+if(r.pod)g.pods[r.pod]=true;
+});
+var rows=Object.keys(groups).map(function(name){
+var g=groups[name];
+g.missed=g.total-g.achieved;
+g.rate=g.total?(g.achieved/g.total)*100:0;
+g.podNames=Object.keys(g.pods).sort();
+return g;
+});
+rows.sort(function(a,b){
+var d=b.rate-a.rate;
+if(d!==0)return d;
+d=b.achieved-a.achieved;
+if(d!==0)return d;
+d=b.total-a.total;
+return d!==0?d:a.po.localeCompare(b.po);
+});
+return rows;
 }
 function uniqueSorted(arr){
 var seen={};
@@ -1506,9 +1541,9 @@ function populateLeaderboardFilterMenus(weekIdx){
 var podSel=document.getElementById("leaderboardPodFilter");
 var poSel=document.getElementById("leaderboardPoFilter");
 if(!podSel||!poSel)return;
-var ranked=weekIdx>=0?rankedRecordsForWeek(weekIdx):[];
-var pods=uniqueSorted(ranked.map(function(r){return r.pod;}));
-var pos=uniqueSorted(ranked.map(function(r){return r.po;}));
+var records=weekIdx>=0?(recordsByWeek[weekIdx]||[]).filter(hasGoal):[];
+var pods=uniqueSorted(records.map(function(r){return r.pod;}));
+var pos=uniqueSorted(records.map(function(r){return r.po;}));
 var prevPod=podSel.value,prevPo=poSel.value;
 podSel.innerHTML='<option value="">All Pods</option>'+pods.map(function(p){return '<option value="'+escapeAttr(p)+'">'+escapeHtml(p)+'</option>';}).join("");
 poSel.innerHTML='<option value="">All Product Owners</option>'+pos.map(function(p){return '<option value="'+escapeAttr(p)+'">'+escapeHtml(p)+'</option>';}).join("");
@@ -1517,23 +1552,21 @@ if(pos.indexOf(prevPo)!==-1)poSel.value=prevPo;
 }
 function buildLeaderboardRows(weekIdx){
 if(weekIdx<0||weekIdx==null)return [];
-var rows=rankedRecordsForWeek(weekIdx).slice();
 var podSel=document.getElementById("leaderboardPodFilter");
 var poSel=document.getElementById("leaderboardPoFilter");
 var podVal=podSel?podSel.value:"";
 var poVal=poSel?poSel.value:"";
-if(podVal)rows=rows.filter(function(r){return r.pod===podVal;});
+var rows=rankedPOsForWeek(weekIdx,podVal);
 if(poVal)rows=rows.filter(function(r){return r.po===poVal;});
 if(!leaderboardSortDesc)rows.reverse();
 return rows;
 }
-// Excluded = audited that week but has no Max Post Views, so it never shows
-// up in the ranked table at all — worth surfacing so a data gap doesn't just
-// look like "everyone did great," it looks like "these clients are missing
-// data."
-function excludedLeaderboardCount(weekIdx){
+function excludedLeaderboardStats(weekIdx){
 var records=recordsByWeek[weekIdx]||[];
-return records.filter(function(r){return !hasGoal(r);}).length;
+return {
+noGoal:records.filter(function(r){return !hasGoal(r);}).length,
+noPo:records.filter(function(r){return hasGoal(r)&&!r.po;}).length
+};
 }
 function currentLeaderboardWeekIndex(){
 return selectedLeaderboardWeekIndex!==null?selectedLeaderboardWeekIndex:weekLabels.length-1;
@@ -1576,17 +1609,14 @@ document.getElementById("leaderboardWeekMenu").classList.remove("open");
 document.getElementById("leaderboardWeekTrigger").classList.remove("open");
 document.getElementById("leaderboardWeekTrigger").setAttribute("aria-expanded","false");
 }
-// Compares this week's rank for a client against last week's rank for the
-// same client (matched by base name, since last week's rank is computed
-// from the week before whatever's currently selected — comparing the
-// selected week to ITS previous week, not always to "the current week").
-function leaderboardMovementBadge(weekIdx, record, rankIndex){
+// PO rank movement against the immediately previous audit week. Pod-filtered
+// views compare against that same pod's previous-week ranking.
+function leaderboardMovementBadge(weekIdx,poRow,rankIndex,podFilter){
 if(weekIdx<=0)return '<span class="leaderboard-move flat">–</span>';
-var prevRanked=rankedRecordsForWeek(weekIdx-1);
-var baseName=clientBaseName(record.title);
+var prevRanked=rankedPOsForWeek(weekIdx-1,podFilter||"");
 var prevRankIndex=-1;
 for(var i=0;i<prevRanked.length;i++){
-if(clientBaseName(prevRanked[i].title)===baseName){prevRankIndex=i;break;}
+if(prevRanked[i].po===poRow.po){prevRankIndex=i;break;}
 }
 if(prevRankIndex===-1)return '<span class="leaderboard-move new">NEW</span>';
 var delta=prevRankIndex-rankIndex; // positive = moved up (lower index = better rank)
@@ -1594,21 +1624,13 @@ if(delta>0)return '<span class="leaderboard-move up">▲'+delta+'</span>';
 if(delta<0)return '<span class="leaderboard-move down">▼'+Math.abs(delta)+'</span>';
 return '<span class="leaderboard-move flat">–</span>';
 }
-// Trend sparkline — this client's Max Post Views for however many of the
-// weeks up to and including uptoWeekIdx they were actually audited in
-// (skips weeks with no match or no numeric views rather than showing a gap),
-// capped to the last maxPoints so one long-running client doesn't render an
-// unreadably dense line.
-function sparklineValuesForClient(baseName,uptoWeekIdx,maxPoints){
+// PO trend = weekly goal success rate, capped to recent points.
+function sparklineValuesForPO(poName,uptoWeekIdx,maxPoints,podFilter){
 var values=[];
 for(var w=0;w<=uptoWeekIdx;w++){
-var records=recordsByWeek[w]||[];
-for(var i=0;i<records.length;i++){
-if(clientBaseName(records[i].title)===baseName&&hasGoal(records[i])){
-values.push(goalScore(records[i]));
-break;
-}
-}
+var rows=rankedPOsForWeek(w,podFilter||"");
+var row=rows.find(function(r){return r.po===poName;});
+if(row)values.push(row.rate);
 }
 if(values.length>maxPoints)values=values.slice(values.length-maxPoints);
 return values;
@@ -1637,56 +1659,58 @@ var idx=currentLeaderboardWeekIndex();
 var labelEl=document.getElementById("leaderboardWeekLabel");
 if(labelEl)labelEl.textContent=idx>=0?weekLabels[idx]:"–";
 populateLeaderboardFilterMenus(idx);
-var rankedForMovement=rankedRecordsForWeek(idx);
+var podSel=document.getElementById("leaderboardPodFilter");
+var podVal=podSel?podSel.value:"";
+var rankedForMovement=rankedPOsForWeek(idx,podVal);
 var rows=buildLeaderboardRows(idx);
 var body=document.getElementById("leaderboardBody");
 var gapNoteEl=document.getElementById("leaderboardGapNote");
 if(!body)return;
 if(gapNoteEl){
-var excluded=idx>=0?excludedLeaderboardCount(idx):0;
-if(excluded>0){
-gapNoteEl.textContent="⚠️ "+excluded+" client"+(excluded===1?"":"s")+" audited this week aren't shown here — no Goal Achieved recorded in Notion.";
+var gaps=idx>=0?excludedLeaderboardStats(idx):{noGoal:0,noPo:0};
+var gapParts=[];
+if(gaps.noGoal)gapParts.push(gaps.noGoal+" missing Goal Achieved");
+if(gaps.noPo)gapParts.push(gaps.noPo+" missing Product Owner");
+if(gapParts.length){
+gapNoteEl.textContent="⚠️ Data gaps: "+gapParts.join(" · ")+".";
 gapNoteEl.style.display="block";
 }else{
 gapNoteEl.style.display="none";
 }
 }
 if(!rows.length){
-body.innerHTML='<tr><td colspan="7" class="leaderboard-empty">No ranked posts for this week yet.</td></tr>';
+body.innerHTML='<tr><td colspan="7" class="leaderboard-empty">No Product Owner goal data for this week yet.</td></tr>';
 return;
 }
 body.innerHTML=rows.map(function(r){
 var poColor=leaderboardPillColor(r.po);
-var podColor=leaderboardPillColor(r.pod);
-var poGap=!r.po;
-var podGap=!r.pod;
-var bestPost=bestPostForRecord(r);
-var bestHtml;
-if(r.bestPostTitle&&bestPost&&bestPost.link){
-bestHtml='<div class="leaderboard-best">'+platformIconHtml(bestPost)+'<a class="leaderboard-best-link" href="'+escapeAttr(bestPost.link)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(stripPlatformSuffix(r.bestPostTitle))+'</a></div>';
-}else if(r.bestPostTitle){
-bestHtml='<div class="leaderboard-best"><span class="leaderboard-best-link">'+escapeHtml(stripPlatformSuffix(r.bestPostTitle))+'</span></div>';
-}else{
-bestHtml='<span class="leaderboard-dim">—</span>';
-}
-var rankIndex=rankedForMovement.indexOf(r);
-var moveHtml=rankIndex===-1?'<span class="leaderboard-move flat">–</span>':leaderboardMovementBadge(idx,r,rankIndex);
-var sparkValues=sparklineValuesForClient(clientBaseName(r.title),idx,6);
+var rankIndex=rankedForMovement.findIndex(function(item){return item.po===r.po;});
+var moveHtml=rankIndex===-1?'<span class="leaderboard-move flat">–</span>':leaderboardMovementBadge(idx,r,rankIndex,podVal);
+var sparkValues=sparklineValuesForPO(r.po,idx,6,podVal);
+var rate=Math.round(r.rate);
+var rateColor=rate>=75?"#16a34a":rate>=50?"#d97706":"#dc2626";
+var rankLabel=rankIndex===0?"🥇":rankIndex===1?"🥈":rankIndex===2?"🥉":"#"+(rankIndex+1);
+var podsHtml=r.podNames.length?'<div class="leaderboard-pods">'+r.podNames.map(function(p){
+var color=leaderboardPillColor(p);
+return '<span class="leaderboard-pill" style="background:'+color.bg+';color:'+color.text+'" title="'+escapeAttr(p)+'">'+escapeHtml(p)+'</span>';
+}).join("")+'</div>':'<span class="leaderboard-pill leaderboard-pill-gap">⚠️ Missing</span>';
 return '<tr>'+
-'<td class="leaderboard-client"><button type="button" class="leaderboard-client-btn" data-client="'+escapeAttr(clientBaseName(r.title))+'">'+escapeHtml(r.title)+'</button></td>'+
+'<td class="leaderboard-rank">'+rankLabel+'</td>'+
+'<td><span class="leaderboard-pill" style="background:'+poColor.bg+';color:'+poColor.text+'">'+escapeHtml(r.po)+'</span></td>'+
+'<td class="leaderboard-goals">'+r.achieved+' / '+r.total+'<span>· '+r.missed+' missed</span></td>'+
+'<td><div class="leaderboard-rate"><div class="leaderboard-rate-bar"><span style="width:'+rate+'%;background:'+rateColor+'"></span></div><span class="leaderboard-rate-value" style="color:'+rateColor+'">'+rate+'%</span></div></td>'+
 '<td class="leaderboard-col-move">'+moveHtml+'</td>'+
-'<td>'+bestHtml+'</td>'+
-'<td class="leaderboard-views">'+goalDisplayHtml(r)+'</td>'+
 '<td class="leaderboard-col-trend"><span class="leaderboard-spark" title="Last '+sparkValues.length+' audited weeks">'+sparklineSvg(sparkValues)+'</span></td>'+
-'<td><span class="leaderboard-pill'+(poGap?" leaderboard-pill-gap":"")+'" style="'+(poGap?"":"background:"+poColor.bg+";color:"+poColor.text)+'">'+(poGap?"⚠️ Unassigned":escapeHtml(r.po))+'</span></td>'+
-'<td><span class="leaderboard-pill'+(podGap?" leaderboard-pill-gap":"")+'" style="'+(podGap?"":"background:"+podColor.bg+";color:"+podColor.text)+'">'+(podGap?"⚠️ Missing":escapeHtml(r.pod))+'</span></td>'+
+'<td>'+podsHtml+'</td>'+
 '</tr>';
 }).join("");
 }
 function leaderboardCsvText(){
 var idx=currentLeaderboardWeekIndex();
 var rows=buildLeaderboardRows(idx);
-var header=["Client","Best Post Title","Goal Achieved","Product Owner","Pod"];
+var podSel=document.getElementById("leaderboardPodFilter");
+var ranked=rankedPOsForWeek(idx,podSel?podSel.value:"");
+var header=["Rank","Product Owner","Goals Achieved","Total Clients","Missed Goals","Success Rate","Pods"];
 function csvEscape(v){
 var s=v===null||v===undefined?"":String(v);
 if(/[",\n]/.test(s))return '"'+s.replace(/"/g,'""')+'"';
@@ -1694,7 +1718,8 @@ return s;
 }
 var lines=[header.map(csvEscape).join(",")];
 rows.forEach(function(r){
-lines.push([r.title,r.bestPostTitle||"",goalPlainText(r),r.po||"Unassigned",r.pod||"Missing"].map(csvEscape).join(","));
+var rank=ranked.findIndex(function(item){return item.po===r.po;})+1;
+lines.push([rank,r.po,r.achieved,r.total,r.missed,Math.round(r.rate)+"%",r.podNames.join(" | ")].map(csvEscape).join(","));
 });
 return lines.join("\n");
 }
@@ -1706,7 +1731,7 @@ var url=URL.createObjectURL(blob);
 var a=document.createElement("a");
 var safeWeek=(idx>=0?weekLabels[idx]:"leaderboard").replace(/[^a-z0-9]+/gi,"-").toLowerCase();
 a.href=url;
-a.download="editoz-leaderboard-"+safeWeek+".csv";
+a.download="editoz-po-leaderboard-"+safeWeek+".csv";
 document.body.appendChild(a);
 a.click();
 document.body.removeChild(a);
@@ -2216,9 +2241,7 @@ return '<div class="print-trend-col">'+
 '</div>';
 }).join("");
 }
-// Clients audited this week but missing Max Post Views entirely — the
-// Leaderboard tab counts these (excludedLeaderboardCount) but never names
-// them; the print report's "Data Gaps" card needs the actual names.
+// Clients missing Goal Achieved; print report's Data Gaps card names them.
 function excludedLeaderboardClients(weekIdx){
 var records=recordsByWeek[weekIdx]||[];
 return records.filter(function(r){return !hasGoal(r);}).map(function(r){return r.title;});
@@ -2301,27 +2324,26 @@ topPerfEl.innerHTML='<p class="print-section-note">No data available.</p>';
 }
 }
 
-// Leaderboard — top 5 only, trimmed to the columns that matter for a
-// one-glance overview (rank movement + views + owner); the full sortable,
-// filterable table with every column lives on the Leaderboard tab itself.
+// PO leaderboard — top 5 goal success rates for the one-page report.
 var lbTable=document.getElementById("printLeaderboardTable");
 var lbNoteEl=document.getElementById("printLeaderboardNote");
 if(lbTable){
-var allRanked=rankedRecordsForWeek(idx);
+var allRanked=rankedPOsForWeek(idx,"");
 var lbRows=allRanked.slice(0,5);
-var lbHtml="<tr><th>#</th><th>Client</th><th>Δ</th><th>Goal Achieved</th><th>PO</th></tr>";
+var lbHtml="<tr><th>#</th><th>Product Owner</th><th>Goals</th><th>Success</th><th>Δ</th></tr>";
 lbRows.forEach(function(r,i){
-var moveHtml=leaderboardMovementBadge(idx,r,i);
-lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.title)+"</td><td>"+moveHtml+"</td><td>"+goalDisplayHtml(r)+"</td><td>"+escapeHtml(r.po||"Unassigned")+"</td></tr>";
+var moveHtml=leaderboardMovementBadge(idx,r,i,"");
+lbHtml+="<tr><td>"+(i+1)+"</td><td>"+escapeHtml(r.po)+"</td><td>"+r.achieved+" / "+r.total+"</td><td>"+Math.round(r.rate)+"%</td><td>"+moveHtml+"</td></tr>";
 });
-if(!lbRows.length)lbHtml+="<tr><td colspan=\"5\">No ranked posts this week.</td></tr>";
+if(!lbRows.length)lbHtml+="<tr><td colspan=\"5\">No Product Owner goal data this week.</td></tr>";
 lbTable.innerHTML=lbHtml;
 if(lbNoteEl){
 var remaining=allRanked.length-lbRows.length;
-var excluded=idx>=0?excludedLeaderboardCount(idx):0;
+var gaps=idx>=0?excludedLeaderboardStats(idx):{noGoal:0,noPo:0};
 var noteParts=[];
-if(remaining>0)noteParts.push(remaining+" more ranked client"+(remaining===1?"":"s")+" on the Leaderboard tab");
-if(excluded>0)noteParts.push(excluded+" audited with no Goal Achieved");
+if(remaining>0)noteParts.push(remaining+" more Product Owner"+(remaining===1?"":"s")+" on the Leaderboard tab");
+if(gaps.noGoal>0)noteParts.push(gaps.noGoal+" audited with no Goal Achieved");
+if(gaps.noPo>0)noteParts.push(gaps.noPo+" with no Product Owner");
 lbNoteEl.textContent=noteParts.length?noteParts.join(" · ")+".":"";
 }
 }
