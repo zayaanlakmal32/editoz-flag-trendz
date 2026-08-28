@@ -24,6 +24,28 @@ const POD_PROPERTY = "Pod";
 // "Goal Achieved", "🎯 Goal Achieved", etc. all work without a deploy.
 const GOAL_ACHIEVED_PROPERTY_PATTERN = /goal\s*achiev(?:ed|ement)?/i;
 
+function extractGoalAchieved(props) {
+  for (const [name, prop] of Object.entries(props)) {
+    if (!GOAL_ACHIEVED_PROPERTY_PATTERN.test(name) || !prop) continue;
+    if (prop.type === "checkbox") return prop.checkbox;
+    if (prop.type === "number") return prop.number;
+    if (prop.type === "select") return prop.select?.name || null;
+    if (prop.type === "status") return prop.status?.name || null;
+    if (prop.type === "formula") {
+      const formula = prop.formula;
+      if (typeof formula?.number === "number") return formula.number;
+      if (typeof formula?.boolean === "boolean") return formula.boolean;
+      if (typeof formula?.string === "string") return formula.string;
+    }
+    if (prop.type === "rollup") {
+      const rollup = prop.rollup;
+      if (typeof rollup?.number === "number") return rollup.number;
+    }
+    return null;
+  }
+  return null;
+}
+
 // Each audit record links to a page in the "Project Tracker" database, which
 // is where the client's program ("Accelerate" vs "DFY") and assigned PO
 // ("PO Name") actually live — the audit database itself doesn't store either
@@ -177,24 +199,7 @@ function extractLeaderboardFields(props) {
   const maxViewsFormula = props[MAX_POST_VIEWS_PROPERTY]?.formula;
   const maxPostViews = typeof maxViewsFormula?.number === "number" ? maxViewsFormula.number : null;
   const pod = props[POD_PROPERTY]?.select?.name || null;
-  let goalAchieved = null;
-  for (const [name, prop] of Object.entries(props)) {
-    if (!GOAL_ACHIEVED_PROPERTY_PATTERN.test(name) || !prop) continue;
-    if (prop.type === "checkbox") goalAchieved = prop.checkbox;
-    else if (prop.type === "number") goalAchieved = prop.number;
-    else if (prop.type === "select") goalAchieved = prop.select?.name || null;
-    else if (prop.type === "status") goalAchieved = prop.status?.name || null;
-    else if (prop.type === "formula") {
-      const formula = prop.formula;
-      if (typeof formula?.number === "number") goalAchieved = formula.number;
-      else if (typeof formula?.boolean === "boolean") goalAchieved = formula.boolean;
-      else if (typeof formula?.string === "string") goalAchieved = formula.string;
-    } else if (prop.type === "rollup") {
-      const rollup = prop.rollup;
-      if (typeof rollup?.number === "number") goalAchieved = rollup.number;
-    }
-    break;
-  }
+  const goalAchieved = extractGoalAchieved(props);
   return { bestPostTitle, maxPostViews, goalAchieved, pod };
 }
 
@@ -229,6 +234,7 @@ async function fetchProjectTrackerMap(token) {
       map.set(page.id, {
         category: props["Project Type"]?.select?.name || null,
         po: props["PO Name"]?.select?.name || null,
+        goalAchieved: extractGoalAchieved(props),
       });
     }
     if (body.has_more && body.next_cursor) cursor = body.next_cursor;
@@ -371,7 +377,8 @@ export default async function handler(req, res) {
       const po = trackerInfo?.po || null;
       if (category) recordsWithResolvedCategory += 1;
 
-      const { bestPostTitle, maxPostViews, goalAchieved, pod } = extractLeaderboardFields(props);
+      const { bestPostTitle, maxPostViews, goalAchieved: auditGoalAchieved, pod } = extractLeaderboardFields(props);
+      const goalAchieved = auditGoalAchieved ?? trackerInfo?.goalAchieved ?? null;
 
       bucket.records.push({
         title,
